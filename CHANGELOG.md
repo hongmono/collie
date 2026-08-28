@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.4] - 2026-08-28
+
+### Fixed
+
+- Codex prose hard-wrapped by a narrow pane now reflows to the browser width while terminal structure and Raw mode stay faithful (77ba4f1)
+
 ## [0.35.3] - 2026-08-28
 
 ### Fixed
