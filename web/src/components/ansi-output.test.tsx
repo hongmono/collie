@@ -71,6 +71,27 @@ describe("mirror line wrapping", () => {
     expect(cls).not.toContain("whitespace-pre-wrap");
   });
 
+  it("reflows Codex prose hard-wrapped by a narrow pane", () => {
+    const rule = "─".repeat(43);
+    const first = `  ${"가".repeat(20)}`; // 42 terminal cells: a full 43-col row minus one.
+    const { container } = render(
+      <AnsiOutput text={`${first}\n  다음 문장\n\n${rule}`} agent="codex" />,
+    );
+    expect(container.querySelector("pre")?.textContent).toBe(`${first}   다음 문장\n\n${rule}`);
+  });
+
+  it("keeps Codex structure and raw-terminal line breaks faithful", () => {
+    const full = "x".repeat(43);
+    const text = `${full}\n  continuation\n${full}\n  - next item`;
+    const { container: lifted } = render(<AnsiOutput text={text} agent="codex" />);
+    expect(lifted.querySelector("pre")?.textContent).toBe(
+      `${full}   continuation\n${full}\n  - next item`,
+    );
+
+    const { container: raw } = render(<AnsiOutput text={text} />);
+    expect(raw.querySelector("pre")?.textContent).toBe(text);
+  });
+
   it("keeps a marked ANSI border to one clipped row without changing its text, styles, links, or find offsets", () => {
     const border = `  ${"─".repeat(20)}  `;
     const text = `ordinary prose\n${ESC}[41m${border.slice(0, 12)}${ESC}[44m${border.slice(12)}${ESC}[0m\nsee https://herdr.dev/docs\n`;

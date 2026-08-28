@@ -17,6 +17,7 @@ import {
 import { MIRROR_SPACE, MIRROR_INVERT, styleFor } from "@/components/mirror-space";
 import { findMatches, splitSegment, type FindMatch } from "@/lib/find";
 import { findLinks } from "@/lib/links";
+import { displayWidth } from "@/lib/text-width";
 import { PromptSelectBlock, type PromptBlockAction } from "@/components/prompt-select-block";
 import { WizardBlock } from "@/components/wizard-block";
 import { PreviewSelectBlock, type PreviewBlockAction } from "@/components/preview-select-block";
@@ -82,6 +83,47 @@ export interface AnsiOutputProps {
 // Stable empty result so the "not searching" path keeps the same `matches` reference across polls
 // (no needless effect re-runs / parent count updates while find is closed).
 const NO_MATCHES: FindMatch[] = [];
+
+// Codex paints prose into its current PTY width before pane.read sees it. When that pane is a narrow
+// desktop split (43 columns in the reported case), preserving every newline wastes half a phone even
+// though the mirror itself is full-width. In Wrap mode, join only rows that look like word-wrapped
+// prose and let CSS wrap the resulting logical line to the browser width. Raw-terminal mode omits
+// the agent adapter, so it remains the byte-faithful escape hatch.
+const STRUCTURAL_START = /^(?:[•›│┌┐└┘├┤┬┴┼╭╮╰╯]|[-+*]\s|\d+[.)]\s|#{1,6}\s|```)/u;
+const RULE_RUN = /[─━═╌╍┄┅┈┉]{8,}/u;
+
+function hasBackground(line: RawBlock["lines"][number]): boolean {
+  return line.segments.some((segment) => segment.bg !== undefined);
+}
+
+function codexLineSeparator(
+  previous: RawBlock["lines"][number],
+  current: RawBlock["lines"][number],
+  columns: number,
+): "\n" | " " {
+  const previousText = lineText(previous).trimEnd();
+  const currentText = lineText(current).trimStart();
+  const previousWidth = displayWidth(previousText);
+  if (
+    columns < 30 ||
+    previousText === "" ||
+    currentText === "" ||
+    previous.noWrap ||
+    current.noWrap ||
+    hasBackground(previous) ||
+    hasBackground(current) ||
+    RULE_RUN.test(previousText) ||
+    RULE_RUN.test(currentText) ||
+    STRUCTURAL_START.test(currentText) ||
+    previousWidth < columns - 4
+  ) {
+    return "\n";
+  }
+
+  // Keep one character in place of the source newline. Besides reading naturally for normal word
+  // wraps, preserving the separator length keeps find/link offsets aligned with the raw haystack.
+  return " ";
+}
 
 // The mirror's dark colour space and its light-theme inversion live in mirror-space.ts — the
 // statusline strip renders the same terminal segments and the two must not drift.
@@ -163,7 +205,13 @@ export const AnsiOutput = memo(function AnsiOutput({
   promptDisabled,
 }: AnsiOutputProps) {
   const segments = useMemo(() => parseAnsi(text), [text]);
-  const blocks = useMemo(() => buildBlocks(splitLines(segments), { agent }), [segments, agent]);
+  const sourceLines = useMemo(() => splitLines(segments), [segments]);
+  const blocks = useMemo(() => buildBlocks(sourceLines, { agent }), [sourceLines, agent]);
+  const terminalColumns = useMemo(() => {
+    let widest = 0;
+    for (const line of sourceLines) widest = Math.max(widest, displayWidth(lineText(line)));
+    return widest;
+  }, [sourceLines]);
 
   const rawBlocks = useMemo(
     () => blocks.filter((b): b is RawBlock => b.kind === "raw"),
@@ -338,7 +386,11 @@ export const AnsiOutput = memo(function AnsiOutput({
           );
           return (
             <Fragment key={li}>
-              {li > 0 ? "\n" : null}
+              {li > 0
+                ? agent === "codex" && wrap
+                  ? codexLineSeparator(block.lines[li - 1]!, line, terminalColumns)
+                  : "\n"
+                : null}
               {content}
             </Fragment>
           );
