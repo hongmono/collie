@@ -728,6 +728,7 @@ export function AgentChat({
               session={session}
               agent={agent?.agent}
               enabled={Boolean(agent?.hasSession)}
+              sessionGeneration={agent?.sessionGeneration}
               listRef={listRef}
             />
             {display ? (

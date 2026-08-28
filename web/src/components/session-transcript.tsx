@@ -17,6 +17,7 @@ interface SessionTranscriptProps {
   session?: string;
   agent?: string;
   enabled: boolean;
+  sessionGeneration?: string;
   listRef: RefObject<ChatMessageListHandle | null>;
 }
 
@@ -32,6 +33,7 @@ export function SessionTranscript({
   session,
   agent,
   enabled,
+  sessionGeneration,
   listRef,
 }: SessionTranscriptProps) {
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
@@ -87,7 +89,7 @@ export function SessionTranscript({
       controller.abort();
       pagingAbort.current?.abort();
     };
-  }, [enabled, paneId, retry, session]);
+  }, [enabled, paneId, retry, session, sessionGeneration]);
 
   const shown = useMemo(
     () => (renderCount >= entries.length ? entries : entries.slice(entries.length - renderCount)),

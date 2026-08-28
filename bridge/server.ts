@@ -26,6 +26,7 @@ import { TranscriptStore } from "./journal/store.ts";
 import type { AgentSessionRef, JournalAdapter } from "./journal/types.ts";
 import { resolveOmoClaim } from "./journal/omo-claim.ts";
 import { toPaneWire } from "./types.ts";
+export { historyGeneration } from "./types.ts";
 import type {
   ActionResponse,
   AgentView,
@@ -226,7 +227,7 @@ export function startServer(opts: {
         const rt = registry.get(sessionName);
         if (!rt) return unknownSession();
         const { agents, shellPanes, workspaces, tabs, bridge } = rt.engine.current();
-        const claimedHistory = new Set(
+        const claimedHistory = new Map(
           (
             await Promise.all(
               agents.map(async (pane) => {
@@ -237,14 +238,15 @@ export function startServer(opts: {
                   return null;
                 }
                 const claim = await claimedOmoSession(cfg, rt.herdr, pane).catch(() => null);
-                return claim === null ? null : pane.paneId;
+                return claim === null ? null : ([pane.paneId, claim] as const);
               }),
             )
-          ).filter((paneId): paneId is string => paneId !== null),
+          ).filter((claim): claim is readonly [string, AgentSessionRef] => claim !== null),
         );
-        const historyAvailable = (pane: AgentView): boolean =>
-          canServeHistory(pane, adapterFor(journals ?? {}, pane.agent)) ||
-          claimedHistory.has(pane.paneId);
+        const historyRef = (pane: AgentView): AgentSessionRef | undefined =>
+          canServeHistory(pane, adapterFor(journals ?? {}, pane.agent))
+            ? pane.agentSession
+            : claimedHistory.get(pane.paneId);
         const device = deviceAuth(req, cfg);
         // Attach each pane's activity timestamps. Done here rather than in the state engine so the
         // engine stays a pure Herdr-poller with no knowledge of the ledger — and so the two numbers
@@ -266,8 +268,8 @@ export function startServer(opts: {
             // journal for doesn't advertise a History button that can only ever come back empty.
             // withActivity runs FIRST: it returns an AgentView, which is what toPaneWire consumes,
             // and the two timestamps then ride through its rest-spread onto the wire shape.
-            agents: agents.map((p) => toPaneWire(withActivity(p), historyAvailable)),
-            shellPanes: shellPanes.map((p) => toPaneWire(withActivity(p), historyAvailable)),
+            agents: agents.map((p) => toPaneWire(withActivity(p), historyRef(p))),
+            shellPanes: shellPanes.map((p) => toPaneWire(withActivity(p), historyRef(p))),
             workspaces,
             tabs,
             sessions: registry.list(),

@@ -1,6 +1,7 @@
 // Domain model for the bridge. These are OUR types, decoupled from Herdr's wire shapes
 // (which live only in herdr-client.ts). The rest of the app talks in these terms.
 
+import { createHash } from "node:crypto";
 import type { AgentSessionRef, TranscriptEntry } from "./journal/types.ts";
 
 // Re-exported so the wire surface has ONE import site: a consumer of PaneHistoryResponse gets the
@@ -96,18 +97,36 @@ export type PaneWire = Omit<AgentView, "agentSession"> & {
   /** True when this pane's history is offerable through an explicit ref or safe server discovery.
    * Says nothing about whether the log is readable — a missing log still answers `no-log`. */
   hasSession?: boolean;
+  /** Opaque hash of the exact backing journal. Changes when a pane switches sessions. */
+  sessionGeneration?: string;
 };
+
+/** Browser-safe identity for the exact journal behind a pane; changes when `/new` or `/resume` does. */
+export function historyGeneration(ref: AgentSessionRef): string {
+  return createHash("sha256")
+    .update(ref.kind)
+    .update("\0")
+    .update(ref.value)
+    .digest("base64url");
+}
 
 /**
  * Strip a pane down to its wire shape. The one place the session ref leaves the bridge's hands.
  *
- * `canServeHistory` is asked rather than assumed: most harnesses need an explicit session ref, while
- * OmO may have an exact pane-and-process-bound claim written by its integration. The server owns
- * that decision so the wire never exposes a filesystem path.
+ * `historyRef` is resolved server-side: most harnesses report it directly, while OmO may have an
+ * exact pane-and-process-bound claim written by its integration. The browser receives only an
+ * opaque generation hash so a same-pane session switch invalidates the mounted transcript without
+ * exposing an id or filesystem path.
  */
-export function toPaneWire(pane: AgentView, canServeHistory: (pane: AgentView) => boolean): PaneWire {
+export function toPaneWire(pane: AgentView, historyRef?: AgentSessionRef): PaneWire {
   const { agentSession, ...rest } = pane;
-  return canServeHistory(pane) ? { ...rest, hasSession: true } : rest;
+  return historyRef
+    ? {
+        ...rest,
+        hasSession: true,
+        sessionGeneration: historyGeneration(historyRef),
+      }
+    : rest;
 }
 
 /** A Herdr workspace ("space") — a project-scoped container of tabs. From `workspace.list`. */

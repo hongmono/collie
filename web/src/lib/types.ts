@@ -34,6 +34,8 @@ export interface AgentView {
    * answers with `available:false, reason:"no-log"`.
    */
   hasSession?: boolean;
+  /** Opaque exact-journal identity. Changes when the same pane moves to another session. */
+  sessionGeneration?: string;
   /**
    * Upper bound on the lines a pane read can return (Herdr's scrollback depth + viewport). The only
    * reliable "is there more scrollback" signal — `PaneReadResponse.truncated` is always false even

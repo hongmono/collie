@@ -10,6 +10,7 @@ import {
   deviceAuth,
   guard,
   historyParams,
+  historyGeneration,
   isHostAllowed,
   isLoopbackPeer,
   isReservedAuthPath,
@@ -27,7 +28,7 @@ import { AuditLog } from "./audit.ts";
 import type { Config } from "./config.ts";
 import type { HerdrClient, PaneRead } from "./herdr-client.ts";
 import type { JournalAdapter } from "./journal/types.ts";
-import type { AgentView } from "./types.ts";
+import { toPaneWire, type AgentView } from "./types.ts";
 
 // checkAccess is the API security gate (same-origin/CSRF + optional Tailscale identity). A
 // regression here silently opens remote shell access, so it gets the most direct coverage.
@@ -114,6 +115,40 @@ describe("canServeHistory — exact session gate", () => {
   test("offers a pane whose agent reported an exact session", () => {
     const current = { ...pane("w1:p1"), agentSession: { kind: "id", value: "session" } } satisfies AgentView;
     expect(canServeHistory(current, adapter)).toBe(true);
+  });
+});
+
+describe("historyGeneration — opaque session identity", () => {
+  test("is stable for one ref and changes when the backing session changes", () => {
+    const first = { kind: "path", value: "/private/sessions/first.jsonl" } as const;
+    const second = { kind: "path", value: "/private/sessions/second.jsonl" } as const;
+
+    expect(historyGeneration(first)).toBe(historyGeneration(first));
+    expect(historyGeneration(first)).not.toBe(historyGeneration(second));
+    expect(historyGeneration(first)).not.toContain(first.value);
+  });
+
+  test("places only the generation on the wire and never the backing ref", () => {
+    const current = {
+      paneId: "w1:p1",
+      workspaceId: "w1",
+      workspaceLabel: "repo",
+      workspaceNumber: 1,
+      tabId: "t1",
+      agent: "omo",
+      status: "idle",
+      cwd: "/repo",
+      focused: false,
+      agentSession: { kind: "path", value: "/private/sessions/first.jsonl" },
+    } satisfies AgentView;
+
+    const wire = toPaneWire(current, current.agentSession);
+    expect(wire).toMatchObject({
+      hasSession: true,
+      sessionGeneration: historyGeneration(current.agentSession),
+    });
+    expect("agentSession" in wire).toBe(false);
+    expect(JSON.stringify(wire)).not.toContain(current.agentSession.value);
   });
 });
 

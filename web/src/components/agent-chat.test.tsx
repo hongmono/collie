@@ -550,6 +550,60 @@ describe("AgentChat — continuous session", () => {
 
     expect(await screen.findByText("what changed today?")).toBeInTheDocument();
   });
+
+  it("replaces persisted turns when the same pane switches sessions", async () => {
+    let request = 0;
+    server.use(
+      http.get(/\/api\/pane\/[^/]+\/history/, () => {
+        request += 1;
+        return HttpResponse.json({
+          paneId: "w1:p1",
+          available: true,
+          entries: [
+            {
+              uuid: `session-${request}`,
+              ts: "2026-08-28T00:00:00.000Z",
+              role: "user",
+              parts: [{ kind: "text", text: request === 1 ? "session A" : "session B" }],
+            },
+          ],
+          hasMore: false,
+          total: 1,
+          fileTruncated: false,
+        });
+      }),
+    );
+
+    let switchSession = () => {};
+    function Harness() {
+      const [sessionGeneration, setSessionGeneration] = useState("generation-a");
+      switchSession = () => setSessionGeneration("generation-b");
+      const agent = {
+        ...fixtureAgents[0]!,
+        hasSession: true,
+        sessionGeneration,
+      };
+      return (
+        <AgentChat
+          paneId={agent.paneId}
+          agent={agent}
+          agents={[agent]}
+          shellPanes={[]}
+          tabs={[]}
+          text="live session"
+          onBack={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      );
+    }
+    const router = createMemoryRouter([{ path: "/", element: <Harness /> }]);
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByText("session A")).toBeInTheDocument();
+    act(() => switchSession());
+    expect(await screen.findByText("session B")).toBeInTheDocument();
+    expect(screen.queryByText("session A")).not.toBeInTheDocument();
+  });
 });
 
 // The top-of-mirror affordance. This block previously rendered on NO pane at all: it was gated on
