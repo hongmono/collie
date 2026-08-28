@@ -7,6 +7,7 @@ import registerOmoClaim, {
   claimTargetForSession,
   type ClaimContext,
   type ClaimExtensionApi,
+  type ClaimFileOps,
 } from "../../contrib/omo/herdr-collie-session.ts";
 
 describe("claimTargetForSession", () => {
@@ -63,6 +64,65 @@ describe("OmO claim extension lifecycle", () => {
       await expect(readFile(claimFile, "utf8")).rejects.toThrow();
     } finally {
       await rm(agentRoot, { recursive: true, force: true });
+      if (previousHerdrEnv === undefined) delete process.env.HERDR_ENV;
+      else process.env.HERDR_ENV = previousHerdrEnv;
+    }
+  });
+
+  test("falls back to removal and retains cleanup state until invalidation succeeds", async () => {
+    const sessionFile = "/agent/sessions/--repo--/session.jsonl";
+    const claimFile = "/agent/herdr-sessions/wA%3Ap1.json";
+    const stored = new Map<string, string>();
+    let failWrite = false;
+    let failRemove = false;
+    const files: ClaimFileOps = {
+      mkdir: async () => {},
+      write: async (path, contents) => {
+        if (failWrite) throw new Error("disk full");
+        stored.set(path, contents);
+      },
+      rename: async (from, to) => {
+        const contents = stored.get(from);
+        if (contents === undefined) throw new Error("missing source");
+        stored.delete(from);
+        stored.set(to, contents);
+      },
+      remove: async (path) => {
+        if (failRemove) throw new Error("permission denied");
+        stored.delete(path);
+      },
+    };
+    const handlers = new Map<string, (event: unknown, ctx: ClaimContext) => Promise<void>>();
+    const api: ClaimExtensionApi = {
+      on(event, handler) {
+        handlers.set(event, handler);
+      },
+    };
+    const previousHerdrEnv = process.env.HERDR_ENV;
+    process.env.HERDR_ENV = "1";
+    try {
+      registerOmoClaim(api, "wA:p1", files);
+      await handlers.get("session_start")?.({}, context(sessionFile));
+      expect(stored.has(claimFile)).toBe(true);
+
+      failWrite = true;
+      await handlers.get("session_shutdown")?.({}, context(sessionFile));
+      expect(stored.has(claimFile)).toBe(false);
+
+      failWrite = false;
+      await handlers.get("session_start")?.({}, context(sessionFile));
+      failWrite = true;
+      failRemove = true;
+      await expect(
+        handlers.get("session_shutdown")?.({}, context(sessionFile)),
+      ).rejects.toThrow();
+      expect(stored.has(claimFile)).toBe(true);
+
+      failWrite = false;
+      failRemove = false;
+      await handlers.get("session_start")?.({}, context(null));
+      expect(stored.has(claimFile)).toBe(false);
+    } finally {
       if (previousHerdrEnv === undefined) delete process.env.HERDR_ENV;
       else process.env.HERDR_ENV = previousHerdrEnv;
     }

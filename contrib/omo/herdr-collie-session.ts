@@ -13,6 +13,23 @@ export interface ClaimExtensionApi {
   on(event: "session_start" | "session_shutdown", handler: ClaimHandler): void;
 }
 
+export interface ClaimFileOps {
+  mkdir(path: string): Promise<void>;
+  write(path: string, contents: string): Promise<void>;
+  rename(from: string, to: string): Promise<void>;
+  remove(path: string): Promise<void>;
+}
+
+const defaultClaimFiles: ClaimFileOps = {
+  mkdir: async (path) => {
+    await mkdir(path, { recursive: true });
+  },
+  write: async (path, contents) =>
+    writeFile(path, contents, { encoding: "utf8", mode: 0o600 }),
+  rename,
+  remove: async (path) => rm(path, { force: true }),
+};
+
 function sessionPath(ctx: ClaimContext): string | null {
   try {
     const value = ctx?.sessionManager?.getSessionFile?.();
@@ -41,17 +58,39 @@ export function claimTargetForSession(path: string, paneId: string): string | nu
   }
 }
 
-async function invalidateClaim(target: string): Promise<void> {
+async function invalidateClaim(target: string, files: ClaimFileOps): Promise<void> {
   const temporary = `${target}.${process.pid}.invalid.tmp`;
-  await mkdir(dirname(target), { recursive: true });
-  await writeFile(temporary, "{}", { encoding: "utf8", mode: 0o600 });
-  await rename(temporary, target);
-  await rm(target, { force: true });
+  try {
+    await files.mkdir(dirname(target));
+    await files.write(temporary, "{}");
+    await files.rename(temporary, target);
+  } catch (tombstoneError) {
+    try {
+      await files.remove(target);
+    } catch (removeError) {
+      throw new AggregateError(
+        [tombstoneError, removeError],
+        `could not invalidate claim: ${target}`,
+      );
+    }
+    try {
+      await files.remove(temporary);
+    } catch {
+      // The valid target is gone; a leftover unreferenced temporary file is harmless.
+    }
+    return;
+  }
+  try {
+    await files.remove(target);
+  } catch {
+    // The atomically-renamed tombstone is malformed and therefore already fails closed.
+  }
 }
 
 export default function registerOmoClaim(
   pi: ClaimExtensionApi,
   paneId = process.env.HERDR_PANE_ID,
+  files: ClaimFileOps = defaultClaimFiles,
 ): void {
   if (process.env.HERDR_ENV !== "1" || !paneId) return;
 
@@ -59,8 +98,8 @@ export default function registerOmoClaim(
   const clearClaim = async () => {
     if (activeClaim === null) return;
     const target = activeClaim;
+    await invalidateClaim(target, files);
     activeClaim = null;
-    await invalidateClaim(target);
   };
   const replaceClaim = async (ctx: ClaimContext) => {
     await clearClaim();
@@ -68,19 +107,22 @@ export default function registerOmoClaim(
     const target = path ? claimTargetForSession(path, paneId) : null;
     if (path === null || target === null) return;
 
-    await invalidateClaim(target);
+    await invalidateClaim(target, files);
     const temporary = `${target}.${process.pid}.tmp`;
     try {
-      await writeFile(
+      await files.write(
         temporary,
         JSON.stringify({ paneId, pid: process.pid, sessionPath: path }),
-        { encoding: "utf8", mode: 0o600 },
       );
-      await rename(temporary, target);
+      await files.rename(temporary, target);
       activeClaim = target;
     } catch (error) {
-      await rm(temporary, { force: true });
-      await invalidateClaim(target);
+      try {
+        await files.remove(temporary);
+      } catch {
+        // The target is invalidated below; an unreferenced temporary file is harmless.
+      }
+      await invalidateClaim(target, files);
       throw error;
     }
   };
@@ -90,6 +132,7 @@ export default function registerOmoClaim(
       await replaceClaim(ctx);
     } catch (error: unknown) {
       console.warn("[herdr-collie-session] claim write failed", error);
+      throw error;
     }
   });
 
@@ -98,6 +141,7 @@ export default function registerOmoClaim(
       await clearClaim();
     } catch (error: unknown) {
       console.warn("[herdr-collie-session] claim cleanup failed", error);
+      throw error;
     }
   });
 }
