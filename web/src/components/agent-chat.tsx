@@ -735,7 +735,7 @@ export function AgentChat({
             dep={display}
             onAtBottomChange={setFollowing}
             hasNew={hasNew}
-            className="px-2 py-3"
+            className="px-0 py-3"
           >
             {display ? (
               <>

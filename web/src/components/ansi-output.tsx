@@ -112,7 +112,7 @@ function preClass(wrap: boolean, className?: string): string {
     MIRROR_SPACE,
     MIRROR_INVERT,
     wrap
-      ? "whitespace-pre-wrap break-words"
+      ? "min-w-0 w-full max-w-full whitespace-pre-wrap break-words"
       : // Horizontal pan for wide TUI tables. `overflow-x-auto` forces `overflow-y` to compute to
         // `auto` (CSS overflow quirk), and a flex item with non-visible overflow may shrink below its
         // content height — the <pre> then becomes the vertical scroller and ChatMessageList's

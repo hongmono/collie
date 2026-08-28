@@ -60,6 +60,7 @@ describe("mirror line wrapping", () => {
   it("wraps by default rather than making the block a horizontal panner", () => {
     const cls = preFor({}).className;
     expect(cls).toContain("whitespace-pre-wrap");
+    expect(cls).toContain("w-full");
     expect(cls).not.toContain("overflow-x-auto");
   });
 
