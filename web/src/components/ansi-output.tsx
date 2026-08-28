@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useMemo, useRef } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -17,6 +17,8 @@ import {
 import { MIRROR_SPACE, MIRROR_INVERT, styleFor } from "@/components/mirror-space";
 import { findMatches, splitSegment, type FindMatch } from "@/lib/find";
 import { findLinks } from "@/lib/links";
+import { displayWidth } from "@/lib/text-width";
+import { FONT_MAX } from "@/hooks/use-display-prefs";
 import { PromptSelectBlock, type PromptBlockAction } from "@/components/prompt-select-block";
 import { WizardBlock } from "@/components/wizard-block";
 import { PreviewSelectBlock, type PreviewBlockAction } from "@/components/preview-select-block";
@@ -82,6 +84,25 @@ export interface AnsiOutputProps {
 // Stable empty result so the "not searching" path keeps the same `matches` reference across polls
 // (no needless effect re-runs / parent count updates while find is closed).
 const NO_MATCHES: FindMatch[] = [];
+
+// The bundled monospace face advances one terminal cell by ~0.602em. Herdr returns an already-
+// rendered grid, so a pane born at 80 columns can leave a visible gutter on a phone whose CSS
+// viewport fits ~92 columns at the chosen size. Grow only in that direction: a wide grid still wraps
+// or pans at the operator's preferred size, while a narrow grid uses the otherwise-dead width.
+const CELL_WIDTH_EM = 0.602;
+const MIN_FIT_COLUMNS = 60;
+
+export function fittedMirrorFontSize(
+  availableWidth: number,
+  columns: number,
+  preferredSize: number,
+): number {
+  if (availableWidth <= 0 || columns < MIN_FIT_COLUMNS) return preferredSize;
+  const fitted = availableWidth / (columns * CELL_WIDTH_EM);
+  // Quarter-pixel steps avoid resize/font-load jitter, and flooring ensures the fitted grid does
+  // not spill a fraction of a cell past the right edge.
+  return Math.floor(Math.max(preferredSize, Math.min(FONT_MAX, fitted)) * 4) / 4;
+}
 
 // The mirror's dark colour space and its light-theme inversion live in mirror-space.ts — the
 // statusline strip renders the same terminal segments and the two must not drift.
@@ -163,7 +184,27 @@ export const AnsiOutput = memo(function AnsiOutput({
   promptDisabled,
 }: AnsiOutputProps) {
   const segments = useMemo(() => parseAnsi(text), [text]);
-  const blocks = useMemo(() => buildBlocks(splitLines(segments), { agent }), [segments, agent]);
+  const sourceLines = useMemo(() => splitLines(segments), [segments]);
+  const blocks = useMemo(() => buildBlocks(sourceLines, { agent }), [sourceLines, agent]);
+  const terminalColumns = useMemo(() => {
+    let widest = 0;
+    for (const line of sourceLines) widest = Math.max(widest, displayWidth(lineText(line)));
+    return widest;
+  }, [sourceLines]);
+  const preRef = useRef<HTMLPreElement>(null);
+  const [renderedFontSize, setRenderedFontSize] = useState(fontSize);
+
+  useLayoutEffect(() => {
+    const pre = preRef.current;
+    if (!pre) return;
+    const fit = () =>
+      setRenderedFontSize(fittedMirrorFontSize(pre.clientWidth, terminalColumns, fontSize));
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(pre);
+    return () => observer.disconnect();
+  }, [fontSize, terminalColumns]);
 
   const rawBlocks = useMemo(
     () => blocks.filter((b): b is RawBlock => b.kind === "raw"),
@@ -350,7 +391,11 @@ export const AnsiOutput = memo(function AnsiOutput({
   return (
     <>
       {rawBlocks.length > 0 && (
-        <pre className={preClass(wrap, className)} style={{ fontSize: `${fontSize}px` }}>
+        <pre
+          ref={preRef}
+          className={preClass(wrap, className)}
+          style={{ fontSize: `${renderedFontSize}px` }}
+        >
           {rawBlocks.map(renderBlock)}
         </pre>
       )}

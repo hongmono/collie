@@ -2,9 +2,24 @@ import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 
-import { AnsiOutput } from "./ansi-output";
+import { AnsiOutput, fittedMirrorFontSize } from "./ansi-output";
 
 const ESC = "\x1b";
+
+describe("terminal mirror width fitting", () => {
+  it("grows a narrow terminal grid into spare viewport width", () => {
+    expect(fittedMirrorFontSize(621, 80, 11)).toBe(12.75);
+  });
+
+  it("never shrinks the operator's chosen size for a wide grid", () => {
+    expect(fittedMirrorFontSize(621, 160, 12)).toBe(12);
+  });
+
+  it("caps growth and leaves short non-grid output alone", () => {
+    expect(fittedMirrorFontSize(1200, 80, 11)).toBe(16);
+    expect(fittedMirrorFontSize(621, 40, 11)).toBe(11);
+  });
+});
 
 // The mirror renders in DARK space under every theme, and the light theme inverts it wholesale
 // (.adr/0002). These guard the two ways that arrangement silently breaks.
