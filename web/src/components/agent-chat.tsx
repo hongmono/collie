@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate, useRevalidator } from "react-router";
-import { ArrowUpToLine, Loader2, ScrollText, Search, TerminalSquare } from "lucide-react";
+import { ArrowUpToLine, Loader2, Search, TerminalSquare } from "lucide-react";
 import { useSwipeUp } from "@/hooks/use-swipe";
 import { useSpaceActions } from "@/hooks/use-spaces";
 import { useDashPrefs, openForCount } from "@/hooks/use-dash-prefs";
@@ -26,6 +26,7 @@ import { TabStrip } from "@/components/tab-strip";
 import { PaneStrip } from "@/components/pane-strip";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { StatusArea } from "@/components/status-area";
+import { SessionTranscript } from "@/components/session-transcript";
 import { ShellBadge, StatusBadge } from "@/components/status-badge";
 import { submitPromptFeedback, submitPromptOption } from "@/lib/prompt-action";
 import { submitWizardKeys } from "@/lib/wizard-action";
@@ -37,7 +38,7 @@ import type { PreviewBlockAction } from "@/components/preview-select-block";
 import type { MenuBlockAction } from "@/components/menu-block";
 import { canGrowRequestedLines, growRequestedLines } from "@/lib/loaders";
 import { shortCwd } from "@/lib/format";
-import { historyPath, spacePath } from "@/lib/nav";
+import { spacePath } from "@/lib/nav";
 import { isReadOnly } from "@/lib/types";
 import type { AgentView, BridgeStatus, DeviceAuth, TabView } from "@/lib/types";
 import type {
@@ -243,13 +244,13 @@ export function AgentChat({
     setFindQuery("");
   }
 
-  // What the top of the buffer can offer — see the JSX for why these are mutually exclusive.
-  // `historyAvailable`: the pane reported an agent session, so a transcript exists to open.
+  // What the top of the live terminal can offer. Session-bearing panes render their transcript
+  // inline above it, so terminal scrollback paging applies only to panes without a transcript.
   // `moreScrollback`: Herdr says this pane can still yield lines beyond the window we've asked for,
   // AND we're under the cap Herdr's own read clamp imposes. `readableLines` is undefined on an older
   // bridge/Herdr; treat that as "no idea" and stay hidden rather than offer a tap that fetches nothing.
-  const historyAvailable = Boolean(agent?.hasSession);
   const moreScrollback =
+    !agent?.hasSession &&
     agent?.readableLines !== undefined &&
     requestedLines < agent.readableLines &&
     canGrowRequestedLines(paneId, session);
@@ -583,7 +584,7 @@ export function AgentChat({
             />
           ) : undefined
         }
-        // Right cluster, in reading order: Find, History, then the agent status pill. The pill is the
+        // Right cluster, in reading order: Find, then the agent status pill. The pill is the
         // rightmost item on every pane screen (it's the thing you glance at), so the buttons sit to
         // its LEFT rather than trailing it. All ride in `rightLead` because AppHeader renders
         // `rightLead` before `rightTrail` — the order here IS the on-screen order.
@@ -592,11 +593,6 @@ export function AgentChat({
         // header row (see `override` above) — trigger and surface in the same place. It sat in the
         // composer's old View row, which put the button at the bottom of the screen and its UI at the
         // top. Offered only when there's buffered output to search; opening it freezes the tail.
-        //
-        // History opens the agent's own transcript, the only real conversation history a Claude pane
-        // has: its terminal runs on the alternate screen, so the mirror below can never show more
-        // than the visible viewport. Offered only when the pane reported an agent session id (i.e. a
-        // transcript can exist at all), so the button never leads to an empty screen.
         //
         // The status pill is dimmed while the connection isn't live, so a frozen "working"/"idle"
         // from the last snapshot doesn't masquerade as current. A bare shell shows a muted "shell" tag.
@@ -611,16 +607,6 @@ export function AgentChat({
                   className="-mr-1 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted/60"
                 >
                   <Search className="size-4" />
-                </button>
-              )}
-              {agent.hasSession && (
-                <button
-                  type="button"
-                  onClick={() => navigate(historyPath(paneId, session))}
-                  aria-label="Conversation history"
-                  className="-mr-1 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted/60"
-                >
-                  <ScrollText className="size-4" />
                 </button>
               )}
               {isShell ? (
@@ -737,32 +723,16 @@ export function AgentChat({
             hasNew={hasNew}
             className="px-2 py-3"
           >
+            <SessionTranscript
+              paneId={paneId}
+              session={session}
+              agent={agent?.agent}
+              enabled={Boolean(agent?.hasSession)}
+              listRef={listRef}
+            />
             {display ? (
               <>
-                {/* Top-of-buffer affordance, reached by scrolling up. WHICH button appears is decided
-                    by what the pane can actually offer, because the two are never both possible:
-
-                      • an agent pane with a transcript → "Show entire history". Its terminal runs on
-                        the alternate screen, which keeps no scrollback ring, so the mirror can never
-                        show more than the viewport — the agent's own session log is the only history
-                        that exists (see bridge/transcript.ts).
-                      • a pane with real scrollback (a shell, on the primary screen) → "Load older",
-                        which grows the requested window.
-                      • neither → nothing.
-
-                    This used to be gated on `truncated`, which Herdr never sets true — so the button
-                    rendered on no pane at all. `readableLines` (scrollback depth + viewport) is the
-                    signal that actually works. */}
-                {historyAvailable ? (
-                  <button
-                    type="button"
-                    onClick={() => navigate(historyPath(paneId, session))}
-                    className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium text-muted-foreground transition-colors active:bg-muted/50"
-                  >
-                    <ScrollText className="size-3.5" />
-                    Show entire history
-                  </button>
-                ) : moreScrollback ? (
+                {moreScrollback ? (
                   <button
                     type="button"
                     onClick={loadOlder}

@@ -93,22 +93,21 @@ export interface AgentView {
  * added to the omit list here. If you add one, strip it here in the same change.
  */
 export type PaneWire = Omit<AgentView, "agentSession"> & {
-  /** True when this pane's history is actually offerable: the agent named a session AND its harness
-   *  has a journal adapter. Says nothing about whether the log is readable — a named session whose
-   *  file is missing still answers `available:false` with reason `no-log`. */
+  /** True when this pane's history is offerable through an explicit ref or safe server discovery.
+   * Says nothing about whether the log is readable — a missing log still answers `no-log`. */
   hasSession?: boolean;
 };
 
 /**
  * Strip a pane down to its wire shape. The one place the session ref leaves the bridge's hands.
  *
- * `hasJournal` is asked rather than assumed: a harness can name a session while having no adapter to
- * read it (Herdr detects more agents than Collie has journals for). Keying the flag on the ref alone
- * would advertise a History affordance that always comes back empty, so the registry gets a vote.
+ * `canServeHistory` is asked rather than assumed: most harnesses need an explicit session ref, while
+ * OmO may have an exact pane-and-process-bound claim written by its integration. The server owns
+ * that decision so the wire never exposes a filesystem path.
  */
-export function toPaneWire(pane: AgentView, hasJournal: (agent: string) => boolean): PaneWire {
+export function toPaneWire(pane: AgentView, canServeHistory: (pane: AgentView) => boolean): PaneWire {
   const { agentSession, ...rest } = pane;
-  return agentSession && hasJournal(pane.agent) ? { ...rest, hasSession: true } : rest;
+  return canServeHistory(pane) ? { ...rest, hasSession: true } : rest;
 }
 
 /** A Herdr workspace ("space") — a project-scoped container of tabs. From `workspace.list`. */

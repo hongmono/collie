@@ -241,3 +241,12 @@ export function piJournal(roots: string | readonly string[]): JournalAdapter {
     parse: parsePiTranscript,
   };
 }
+
+/** OmO persists the same v3 JSONL grammar as pi, under its own agent directory. */
+export function omoJournal(roots: string | readonly string[]): JournalAdapter {
+  return {
+    agent: "omo",
+    source: new PiTranscriptSource(roots),
+    parse: parsePiTranscript,
+  };
+}

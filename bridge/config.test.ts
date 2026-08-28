@@ -18,12 +18,14 @@ const KEYS = [
   "COLLIE_TRANSCRIPT_ROOT",
   "COLLIE_CODEX_ROOT",
   "COLLIE_PI_ROOT",
+  "COLLIE_OMO_ROOT",
   "COLLIE_OPENCODE_ROOT",
   "COLLIE_GROK_ROOT",
   // Each harness's own home var participates in journal-root resolution, so the suite must own them
   // too — otherwise a developer with CODEX_HOME set gets different results than CI.
   "CODEX_HOME",
   "PI_CODING_AGENT_DIR",
+  "OMO_CODING_AGENT_DIR",
   "XDG_DATA_HOME",
   "GROK_HOME",
   "COLLIE_SUBMIT_KEYS",
@@ -79,6 +81,7 @@ describe("loadConfig", () => {
     // One root by default, and it is a list of one rather than a special case (issue #92).
     expect(cfg.journalRoots.claude).toHaveLength(1);
     expect(cfg.journalRoots.claude[0]).toEndWith("/.claude/projects");
+    expect(cfg.journalRoots.omo).toEqual([join(homedir(), ".omo", "agent", "sessions")]);
     // OpenCode keeps ONE sqlite database at the top of its XDG data dir — no per-session files.
     expect(cfg.journalRoots.opencode).toEqual([join(homedir(), ".local", "share", "opencode")]);
     expect(cfg.journalRoots.grok).toEqual([join(homedir(), ".grok", "sessions")]);
@@ -183,11 +186,13 @@ describe("loadConfig", () => {
   test("every harness root takes a list, not just Claude's", () => {
     process.env.COLLIE_CODEX_ROOT = "/a/sessions,/b/sessions";
     process.env.COLLIE_PI_ROOT = "/c/sessions,/d/sessions";
+    process.env.COLLIE_OMO_ROOT = "/m/sessions,/n/sessions";
     process.env.COLLIE_OPENCODE_ROOT = "/e/opencode,/f/opencode";
     process.env.COLLIE_GROK_ROOT = "/g/sessions,/h/sessions";
     const cfg = loadConfig();
     expect(cfg.journalRoots.codex).toEqual(["/a/sessions", "/b/sessions"]);
     expect(cfg.journalRoots.pi).toEqual(["/c/sessions", "/d/sessions"]);
+    expect(cfg.journalRoots.omo).toEqual(["/m/sessions", "/n/sessions"]);
     expect(cfg.journalRoots.opencode).toEqual(["/e/opencode", "/f/opencode"]);
     expect(cfg.journalRoots.grok).toEqual(["/g/sessions", "/h/sessions"]);
   });
@@ -195,11 +200,13 @@ describe("loadConfig", () => {
   test("each harness's own home var relocates its journal root", () => {
     process.env.CODEX_HOME = "/srv/codex";
     process.env.PI_CODING_AGENT_DIR = "/srv/pi";
+    process.env.OMO_CODING_AGENT_DIR = "/srv/omo";
     process.env.XDG_DATA_HOME = "/srv/share";
     process.env.GROK_HOME = "/srv/grok";
     const cfg = loadConfig();
     expect(cfg.journalRoots.codex).toEqual(["/srv/codex/sessions"]);
     expect(cfg.journalRoots.pi).toEqual(["/srv/pi/sessions"]);
+    expect(cfg.journalRoots.omo).toEqual(["/srv/omo/sessions"]);
     expect(cfg.journalRoots.opencode).toEqual(["/srv/share/opencode"]);
     expect(cfg.journalRoots.grok).toEqual(["/srv/grok/sessions"]);
   });

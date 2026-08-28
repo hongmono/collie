@@ -14,7 +14,7 @@ import { claudeJournal } from "./claude.ts";
 import { codexJournal } from "./codex.ts";
 import { grokJournal } from "./grok.ts";
 import { opencodeJournal } from "./opencode.ts";
-import { piJournal } from "./pi.ts";
+import { omoJournal, piJournal } from "./pi.ts";
 import type { JournalAdapter } from "./types.ts";
 
 /**
@@ -33,6 +33,8 @@ export interface JournalRoots {
   codex: readonly string[];
   /** pi's `$PI_CODING_AGENT_DIR/sessions`. */
   pi: readonly string[];
+  /** OmO's `~/.omo/agent/sessions`. */
+  omo: readonly string[];
   /** OpenCode's data dir — the SQLite `opencode.db` lives at its top level. */
   opencode: readonly string[];
   /** Grok Build's `$GROK_HOME/sessions`. */
@@ -50,6 +52,7 @@ export function buildJournalRegistry(roots: JournalRoots): Record<string, Journa
     claudeJournal(roots.claude),
     codexJournal(roots.codex),
     piJournal(roots.pi),
+    omoJournal(roots.omo),
     opencodeJournal(roots.opencode),
     grokJournal(roots.grok),
   ];

@@ -23,7 +23,8 @@ import type { UpdateMonitor } from "./update.ts";
 import type { StateEngine } from "./state-engine.ts";
 import { adapterFor, buildJournalRegistry } from "./journal/registry.ts";
 import { TranscriptStore } from "./journal/store.ts";
-import type { JournalAdapter } from "./journal/types.ts";
+import type { AgentSessionRef, JournalAdapter } from "./journal/types.ts";
+import { resolveOmoClaim } from "./journal/omo-claim.ts";
 import { toPaneWire } from "./types.ts";
 import type {
   ActionResponse,
@@ -147,6 +148,28 @@ export function marksPaneSeen(req: Request, action: string | undefined): boolean
   return action !== undefined && action !== "history";
 }
 
+/** History is offerable only when the live agent reported an exact session reference. */
+export function canServeHistory(
+  pane: AgentView,
+  adapter: JournalAdapter | undefined,
+): boolean {
+  return adapter !== undefined && pane.agentSession !== undefined;
+}
+
+async function claimedOmoSession(
+  cfg: Config,
+  herdr: HerdrClient,
+  pane: AgentView,
+): Promise<AgentSessionRef | null> {
+  if (pane.agent !== "omo") return null;
+  const processInfo = await herdr.paneProcessInfo(pane.paneId);
+  return resolveOmoClaim(
+    cfg.journalRoots.omo,
+    pane.paneId,
+    new Set(processInfo.foregroundPids),
+  );
+}
+
 export function startServer(opts: {
   cfg: Config;
   registry: SessionRegistry;
@@ -170,8 +193,6 @@ export function startServer(opts: {
   const operatorQuickReplies = createOperatorQuickReplies(cfg.quickRepliesFile);
   const journals = cfg.transcript ? buildJournalRegistry(cfg.journalRoots) : null;
   const transcripts = cfg.transcript ? new TranscriptStore() : null;
-  /** Does this agent have a journal at all — the snapshot's History-affordance gate. */
-  const hasJournal = (agent: string) => adapterFor(journals ?? {}, agent) !== undefined;
   // Per-session background notifications live in each session's runtime (built by the factory in
   // index.ts, wired to its StateEngine transitions). The routes here only fan preference changes and
   // snooze-clears across every live session's coordinator.
@@ -205,6 +226,25 @@ export function startServer(opts: {
         const rt = registry.get(sessionName);
         if (!rt) return unknownSession();
         const { agents, shellPanes, workspaces, tabs, bridge } = rt.engine.current();
+        const claimedHistory = new Set(
+          (
+            await Promise.all(
+              agents.map(async (pane) => {
+                if (
+                  pane.agentSession !== undefined ||
+                  adapterFor(journals ?? {}, pane.agent) === undefined
+                ) {
+                  return null;
+                }
+                const claim = await claimedOmoSession(cfg, rt.herdr, pane).catch(() => null);
+                return claim === null ? null : pane.paneId;
+              }),
+            )
+          ).filter((paneId): paneId is string => paneId !== null),
+        );
+        const historyAvailable = (pane: AgentView): boolean =>
+          canServeHistory(pane, adapterFor(journals ?? {}, pane.agent)) ||
+          claimedHistory.has(pane.paneId);
         const device = deviceAuth(req, cfg);
         // Attach each pane's activity timestamps. Done here rather than in the state engine so the
         // engine stays a pure Herdr-poller with no knowledge of the ledger — and so the two numbers
@@ -226,8 +266,8 @@ export function startServer(opts: {
             // journal for doesn't advertise a History button that can only ever come back empty.
             // withActivity runs FIRST: it returns an AgentView, which is what toPaneWire consumes,
             // and the two timestamps then ride through its rest-spread onto the wire shape.
-            agents: agents.map((p) => toPaneWire(withActivity(p), hasJournal)),
-            shellPanes: shellPanes.map((p) => toPaneWire(withActivity(p), hasJournal)),
+            agents: agents.map((p) => toPaneWire(withActivity(p), historyAvailable)),
+            shellPanes: shellPanes.map((p) => toPaneWire(withActivity(p), historyAvailable)),
             workspaces,
             tabs,
             sessions: registry.list(),
@@ -300,7 +340,16 @@ export function startServer(opts: {
 
         if (!action && req.method === "GET") return readPane(herdr, cfg, paneId, url, req);
         if (action === "history" && req.method === "GET")
-          return paneHistory(cfg, journals, transcripts, rt.engine, paneId, url, req);
+          return paneHistory(
+            cfg,
+            journals,
+            transcripts,
+            herdr,
+            rt.engine,
+            paneId,
+            url,
+            req,
+          );
         if (action === "reply" && req.method === "POST") return replyPane(herdr, cfg, paneId, req, audit, device, session);
         if (action === "keys" && req.method === "POST") return keysPane(herdr, cfg, paneId, req, audit, device, session);
         if (action === "upload" && req.method === "POST") return uploadPane(cfg, paneId, req, audit, device, session);
@@ -577,6 +626,7 @@ async function paneHistory(
   cfg: Config,
   journals: Record<string, JournalAdapter> | null,
   transcripts: TranscriptStore | null,
+  herdr: HerdrClient,
   engine: StateEngine,
   paneId: string,
   url: URL,
@@ -590,16 +640,19 @@ async function paneHistory(
 
   const { agents, shellPanes } = engine.current();
   const pane = [...agents, ...shellPanes].find((a) => a.paneId === paneId);
-  // No pane, or an agent that named no session (a shell, or a harness whose integration isn't
-  // installed): nothing to read, and that's an ordinary answer rather than an error.
-  if (!pane?.agentSession) return unavailable("no-session");
+  if (!pane) return unavailable("no-session");
   // An agent with no adapter has no journal. Same answer — the UI shouldn't distinguish "this
   // harness isn't supported" from "this pane never started one"; both mean there's nothing to show.
   const adapter = adapterFor(journals, pane.agent);
   if (adapter === undefined) return unavailable("no-session");
 
   try {
-    const page = await transcripts.page(adapter, pane.agentSession, historyParams(url));
+    let ref = pane.agentSession;
+    if (ref === undefined && pane.agent === "omo") {
+      ref = (await claimedOmoSession(cfg, herdr, pane)) ?? undefined;
+    }
+    if (ref === undefined) return unavailable("no-session");
+    const page = await transcripts.page(adapter, ref, historyParams(url));
     if (page === null) return unavailable("no-log");
     return json({ paneId, available: true, ...page } satisfies PaneHistoryResponse, accept);
   } catch (err) {

@@ -36,7 +36,6 @@ describe("isPiSessionId", () => {
     expect(isPiSessionId(value)).toBe(expected);
   });
 });
-
 describe("parsePiTranscript", () => {
   test("reads speech turns and ignores the session header", () => {
     const entries = parsePiTranscript(

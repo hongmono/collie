@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   BUILD_HEADER,
+  canServeHistory,
   cacheControlFor,
   checkAccess,
   marksPaneSeen,
@@ -25,6 +26,8 @@ import {
 import { AuditLog } from "./audit.ts";
 import type { Config } from "./config.ts";
 import type { HerdrClient, PaneRead } from "./herdr-client.ts";
+import type { JournalAdapter } from "./journal/types.ts";
+import type { AgentView } from "./types.ts";
 
 // checkAccess is the API security gate (same-origin/CSRF + optional Tailscale identity). A
 // regression here silently opens remote shell access, so it gets the most direct coverage.
@@ -51,6 +54,7 @@ function cfg(overrides: Partial<Config> = {}): Config {
       claude: ["/tmp/claude-projects"],
       codex: ["/nope/codex"],
       pi: ["/nope/pi"],
+      omo: ["/nope/omo"],
       opencode: ["/nope/opencode"],
       grok: ["/nope/grok"],
     },
@@ -79,6 +83,39 @@ function cfg(overrides: Partial<Config> = {}): Config {
     ...overrides,
   };
 }
+
+describe("canServeHistory — exact session gate", () => {
+  const pane = (paneId: string, cwd = "/repo"): AgentView => ({
+    paneId,
+    workspaceId: "w1",
+    workspaceLabel: "repo",
+    workspaceNumber: 1,
+    tabId: "t1",
+    agent: "omo",
+    status: "idle",
+    cwd,
+    focused: false,
+  });
+  const adapter = {
+    agent: "omo",
+    source: {
+      resolve: async () => null,
+      stat: async () => null,
+      load: async () => ({ text: "", complete: true, size: 0, mtimeMs: 0 }),
+    },
+    parse: () => [],
+  } satisfies JournalAdapter;
+
+  test("refuses a pane that has no exact agent session", () => {
+    const current = pane("w1:p1");
+    expect(canServeHistory(current, adapter)).toBe(false);
+  });
+
+  test("offers a pane whose agent reported an exact session", () => {
+    const current = { ...pane("w1:p1"), agentSession: { kind: "id", value: "session" } } satisfies AgentView;
+    expect(canServeHistory(current, adapter)).toBe(true);
+  });
+});
 
 describe("checkAccess — same-origin / CSRF gate", () => {
   test("allows a request with no Origin header (same-origin GET)", () => {

@@ -126,6 +126,11 @@ export interface PaneRead {
   revision: number;
 }
 
+export interface PaneProcessInfo {
+  paneId: string;
+  foregroundPids: number[];
+}
+
 // Wire names are snake_case: `recent-unwrapped` is REJECTED by the server (`unknown variant`,
 // live-probed 2026-08-03, herdr 0.7.5). Nothing called it before that probe, so the kebab spelling
 // this type carried since day one was never caught. `detection` also exists (listed by the server's
@@ -250,6 +255,19 @@ export class HerdrClient {
   async listPanes(): Promise<WirePane[]> {
     const r = await this.request<{ panes: WirePane[] }>("pane.list");
     return r.panes;
+  }
+
+  async paneProcessInfo(paneId: string): Promise<PaneProcessInfo> {
+    const r = await this.request<{
+      process_info: {
+        pane_id: string;
+        foreground_processes: Array<{ pid: number }>;
+      };
+    }>("pane.process_info", { pane_id: paneId });
+    return {
+      paneId: r.process_info.pane_id,
+      foregroundPids: r.process_info.foreground_processes.map((process) => process.pid),
+    };
   }
 
   /** All tabs across every workspace (`tab.list` with no filter returns the full set). */
