@@ -10,7 +10,7 @@ export interface ClaimContext {
 type ClaimHandler = (event: unknown, ctx: ClaimContext) => Promise<void>;
 
 export interface ClaimExtensionApi {
-  on(event: "session_start" | "session_shutdown", handler: ClaimHandler): void;
+  on(event: "session_start" | "session_shutdown" | "agent_start", handler: ClaimHandler): void;
 }
 
 export interface ClaimFileOps {
@@ -37,6 +37,12 @@ function sessionPath(ctx: ClaimContext): string | null {
   } catch {
     return null;
   }
+}
+
+function previousSessionPath(event: unknown): string | null {
+  if (typeof event !== "object" || event === null) return null;
+  const value = (event as { previousSessionFile?: unknown }).previousSessionFile;
+  return typeof value === "string" ? value : null;
 }
 
 export function claimTargetForSession(path: string, paneId: string): string | null {
@@ -95,14 +101,28 @@ export default function registerOmoClaim(
   if (process.env.HERDR_ENV !== "1" || !paneId) return;
 
   let activeClaim: string | null = null;
+  let cleanupPending = false;
   const clearClaim = async () => {
     if (activeClaim === null) return;
     const target = activeClaim;
+    cleanupPending = true;
     await invalidateClaim(target, files);
     activeClaim = null;
+    cleanupPending = false;
   };
-  const replaceClaim = async (ctx: ClaimContext) => {
-    await clearClaim();
+  const replaceClaim = async (event: unknown, ctx: ClaimContext) => {
+    const previousPath = previousSessionPath(event);
+    const previousClaim = previousPath
+      ? claimTargetForSession(previousPath, paneId)
+      : null;
+    const claimsToClear = new Set(
+      [activeClaim, previousClaim].filter((target): target is string => target !== null),
+    );
+    for (const target of claimsToClear) {
+      activeClaim = target;
+      await clearClaim();
+    }
+
     const path = sessionPath(ctx);
     const target = path ? claimTargetForSession(path, paneId) : null;
     if (path === null || target === null) return;
@@ -116,6 +136,7 @@ export default function registerOmoClaim(
       );
       await files.rename(temporary, target);
       activeClaim = target;
+      cleanupPending = false;
     } catch (error) {
       try {
         await files.remove(temporary);
@@ -127,11 +148,21 @@ export default function registerOmoClaim(
     }
   };
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on("session_start", async (event, ctx) => {
     try {
-      await replaceClaim(ctx);
+      await replaceClaim(event, ctx);
     } catch (error: unknown) {
       console.warn("[herdr-collie-session] claim write failed", error);
+      throw error;
+    }
+  });
+
+  pi.on("agent_start", async (event, ctx) => {
+    if (!cleanupPending) return;
+    try {
+      await replaceClaim(event, ctx);
+    } catch (error: unknown) {
+      console.warn("[herdr-collie-session] claim retry failed", error);
       throw error;
     }
   });

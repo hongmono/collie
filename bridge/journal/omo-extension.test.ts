@@ -118,9 +118,18 @@ describe("OmO claim extension lifecycle", () => {
       ).rejects.toThrow();
       expect(stored.has(claimFile)).toBe(true);
 
+      handlers.clear();
+      registerOmoClaim(api, "wA:p1", files);
+      await expect(
+        handlers
+          .get("session_start")
+          ?.({ reason: "new", previousSessionFile: sessionFile }, context(null)),
+      ).rejects.toThrow();
+      expect(stored.has(claimFile)).toBe(true);
+
       failWrite = false;
       failRemove = false;
-      await handlers.get("session_start")?.({}, context(null));
+      await handlers.get("agent_start")?.({}, context(null));
       expect(stored.has(claimFile)).toBe(false);
     } finally {
       if (previousHerdrEnv === undefined) delete process.env.HERDR_ENV;
