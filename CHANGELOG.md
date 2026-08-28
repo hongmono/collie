@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.1] - 2026-08-28
+
+### Fixed
+
+- Dashboard, space, settings, and terminal views now use the full available viewport width (9e69fd1)
+
 ## [0.35.0] - 2026-08-26
 
 **BREAKING — read before updating.**
