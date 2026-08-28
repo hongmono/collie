@@ -123,9 +123,13 @@ export default function registerOmoClaim(
       await clearClaim();
     }
 
+    cleanupPending = true;
     const path = sessionPath(ctx);
     const target = path ? claimTargetForSession(path, paneId) : null;
-    if (path === null || target === null) return;
+    if (path === null || target === null) {
+      cleanupPending = false;
+      return;
+    }
 
     await invalidateClaim(target, files);
     const temporary = `${target}.${process.pid}.tmp`;

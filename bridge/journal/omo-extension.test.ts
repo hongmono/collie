@@ -131,6 +131,17 @@ describe("OmO claim extension lifecycle", () => {
       failRemove = false;
       await handlers.get("agent_start")?.({}, context(null));
       expect(stored.has(claimFile)).toBe(false);
+
+      const nextSessionFile = "/agent/sessions/--repo--/next.jsonl";
+      failWrite = true;
+      await expect(
+        handlers.get("session_start")?.({}, context(nextSessionFile)),
+      ).rejects.toThrow();
+      expect(stored.has(claimFile)).toBe(false);
+
+      failWrite = false;
+      await handlers.get("agent_start")?.({}, context(nextSessionFile));
+      expect(JSON.parse(stored.get(claimFile) ?? "{}").sessionPath).toBe(nextSessionFile);
     } finally {
       if (previousHerdrEnv === undefined) delete process.env.HERDR_ENV;
       else process.env.HERDR_ENV = previousHerdrEnv;
