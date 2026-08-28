@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.2] - 2026-08-28
+
+### Fixed
+
+- Narrow terminal grids now expand to use spare mirror width without shrinking the chosen text size (4f2483d)
+
 ## [0.35.1] - 2026-08-28
 
 ### Fixed
