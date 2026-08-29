@@ -100,7 +100,7 @@ function codexLineSeparator(
   previous: RawBlock["lines"][number],
   current: RawBlock["lines"][number],
   columns: number,
-): "\n" | " " {
+): "\n" | " " | "" {
   const previousText = lineText(previous).trimEnd();
   const currentText = lineText(current).trimStart();
   const previousWidth = displayWidth(previousText);
@@ -120,8 +120,21 @@ function codexLineSeparator(
     return "\n";
   }
 
-  // Keep one character in place of the source newline. Besides reading naturally for normal word
-  // wraps, preserving the separator length keeps find/link offsets aligned with the raw haystack.
+  // Unicode terminal wrapping may break a Korean eojeol between any two syllables. Adding the
+  // prose separator there invents a visible typo ("하겠 습니다"). A trailing hyphen already is
+  // the separator for an ASCII word split, so it likewise needs no extra blank.
+  const previousLast = previousText.at(-1) ?? "";
+  const currentFirst = currentText.at(0) ?? "";
+  if (
+    (/\p{Script=Hangul}/u.test(previousLast) && /\p{Script=Hangul}/u.test(currentFirst)) ||
+    (previousLast === "-" && /[\p{L}\p{N}]/u.test(currentFirst))
+  ) {
+    return "";
+  }
+
+  // Keep one character in place of the source newline. The renderer trims only the terminal padding
+  // touching this joined boundary; raw offsets still advance over every source character so find and
+  // link ranges remain aligned with the byte-faithful haystack.
   return " ";
 }
 
@@ -365,17 +378,34 @@ export const AnsiOutput = memo(function AnsiOutput({
 
   const renderBlock = (block: RawBlock, bi: number) => {
     if (bi > 0) offset += 1; // the "\n" separating this block from the previous
+    const separators = block.lines.slice(1).map((line, index) =>
+      agent === "codex" && wrap
+        ? codexLineSeparator(block.lines[index]!, line, terminalColumns)
+        : "\n",
+    );
     return (
       <Fragment key={bi}>
         {bi > 0 ? "\n" : null}
         {block.lines.map((line, li) => {
           if (li > 0) offset += 1; // the "\n" separating this line from the previous
+          const text = lineText(line);
+          const trimLeading = li > 0 && separators[li - 1] !== "\n"
+            ? text.length - text.trimStart().length
+            : 0;
+          const visibleEnd = li < separators.length && separators[li] !== "\n"
+            ? text.trimEnd().length
+            : text.length;
+          let lineOffset = 0;
           const segNodes = line.segments.map((s, si) => {
             const segStart = offset;
             offset += s.text.length;
+            const start = Math.max(0, trimLeading - lineOffset);
+            const end = Math.min(s.text.length, visibleEnd - lineOffset);
+            lineOffset += s.text.length;
+            if (end <= start) return null;
             return (
               <span key={si} style={styleFor(s)}>
-                {renderSegment(s.text, segStart)}
+                {renderSegment(s.text.slice(start, end), segStart + start)}
               </span>
             );
           });
@@ -386,11 +416,7 @@ export const AnsiOutput = memo(function AnsiOutput({
           );
           return (
             <Fragment key={li}>
-              {li > 0
-                ? agent === "codex" && wrap
-                  ? codexLineSeparator(block.lines[li - 1]!, line, terminalColumns)
-                  : "\n"
-                : null}
+              {li > 0 ? separators[li - 1] : null}
               {content}
             </Fragment>
           );

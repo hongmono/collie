@@ -116,6 +116,17 @@ function renderComposerWithStatus(overrides: Partial<ComponentProps<typeof Compo
 }
 
 describe("Composer — send", () => {
+  it("gives the reply field the full composer width and overlays its actions", () => {
+    renderComposer();
+    const box = screen.getByPlaceholderText(/type a reply/i);
+    const field = box.parentElement!;
+
+    expect(field.className).toContain("w-full");
+    expect(box.className).toContain("w-full");
+    expect(screen.getByRole("button", { name: "Attach image" }).className).toContain("absolute");
+    expect(screen.getByRole("button", { name: "Send" }).className).toContain("absolute");
+  });
+
   // #34: a dialog owns the TUI's keyboard. Sending free text at one loses the message AND makes the
   // submit key answer the dialog, approving whatever was highlighted. Nothing may leave the phone.
   it("refuses to send while a dialog is on screen, and keeps the draft", async () => {
