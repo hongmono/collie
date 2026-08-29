@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.9] - 2026-08-29
+
+### Fixed
+
+- Multiline replies now reach agent input boxes without line breaks submitting them early (d680130)
+
 ## [0.35.8] - 2026-08-29
 
 ### Fixed
