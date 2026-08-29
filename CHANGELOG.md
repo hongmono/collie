@@ -6,6 +6,13 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.6] - 2026-08-29
+
+### Fixed
+
+- Reply input now reaches both viewport edges while the controls above keep their spacing (023398c)
+- Current Codex `model · cwd` status rows are recognised, so ordinary replies submit on the first tap instead of asking `Type anyway?` (023398c)
+
 ## [0.35.5] - 2026-08-29
 
 ### Fixed
