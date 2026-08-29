@@ -130,6 +130,26 @@ describe("chrome", () => {
     expect(locateComposer(splitLines(parseAnsi(real)))).not.toBeNull();
   });
 
+  it("recognises the compact model-effort-cwd status row used by current Codex", () => {
+    const current = [
+      "› Ask Codex to do anything",
+      "",
+      "  gpt-5.6-sol medium · ~/Development/collie",
+    ].join("\n");
+    const lines = splitLines(parseAnsi(current));
+
+    expect(locateComposer(lines)).not.toBeNull();
+    expect(codexAdapter.composerReady!(lines)).toBe(true);
+    expect(codexAdapter.extractInputDraft(lines)).toBeNull();
+
+    // Preserve the leading-indent and known-model constraints: lookalike transcript prose does not
+    // become a composer merely because it ends in an effort word and a path.
+    const columnZero = current.replace("  gpt-", "gpt-");
+    const prose = current.replace("  gpt-5.6-sol", "  arbitrary prose");
+    expect(locateComposer(splitLines(parseAnsi(columnZero)))).toBeNull();
+    expect(locateComposer(splitLines(parseAnsi(prose)))).toBeNull();
+  });
+
   it("a draft that wraps past 8 rows is still a composer", () => {
     // The old bound of 8 stranded a phone wrap: locateComposer returned null and the pane
     // reported a dialog. 1 prompt + 8 continuations is 9 rows, the first case that failed.

@@ -22,7 +22,9 @@ export function rstrip(text: string): string {
   return text.replace(/\s+$/, "");
 }
 
-// The status row under the composer: `  <model> · <cwd> · Context N% left[ · weekly N% left]`.
+// The status row under the composer. Codex currently ships two default shapes:
+//   `  <model> <effort> · <cwd>`
+//   `  <model> · <cwd> · Context N% left[ · weekly N% left]`
 // Everything before the Context token is OPAQUE — model names and directories change per
 // session and per release, and this file must never match them. What IS the grammar: the
 // two-space indent, at least two ` · `-separated fields before the token, and the token itself
@@ -30,16 +32,22 @@ export function rstrip(text: string): string {
 // leading fields keeps a transcript line that merely mentions a context percentage from
 // claiming the row (review repro: `model · Context 50% left` at column 0 must not match).
 //
-// KNOWN LIMIT: Codex's status line is operator-configurable (`tui.status_line`, including
-// `null` to disable it). A custom or disabled status line never matches, so the composer is
-// never located and the pane falls back to the raw mirror with replies refused — safe, but
-// this adapter's lift only engages on the DEFAULT status line.
-const STATUS_ROW = /^ {2}\S.* · .* · .*Context \d+% (left|used)\b/;
+// The compact default introduced by newer Codex releases has no Context token. Keep that grammar
+// deliberately narrow: a gpt-* model, a known reasoning effort, and an absolute/home-relative cwd.
+// Together with locateComposer's tail anchor and prompt-row check, this recognises the real chrome
+// without turning an arbitrary transcript sentence ending in ` · ~/path` into a composer.
+//
+// KNOWN LIMIT: Codex's status line is operator-configurable (`tui.status_line`, including `null` to
+// disable it). A custom or disabled status line never matches, so replies stay refused — safe.
+const CONTEXT_STATUS_ROW = /^ {2}\S.* · .* · .*Context \d+% (left|used)\b/;
+const COMPACT_STATUS_ROW =
+  /^ {2}gpt-\S+(?: \S+)* (?:low|medium|high|xhigh|max|ultra) · (?:~\/|\/|[A-Za-z]:[\\/])\S*$/;
 
 /** True when the row could be the composer's status line. Never decisive alone — the composer
  *  is located by the prompt-row-above-status shape at the buffer tail, not by any single row. */
 export function isStatusRow(text: string): boolean {
-  return STATUS_ROW.test(rstrip(text));
+  const row = rstrip(text);
+  return CONTEXT_STATUS_ROW.test(row) || COMPACT_STATUS_ROW.test(row);
 }
 
 // The `› ` prompt row. Column 0 — but transcript ECHOES of submitted messages paint the same

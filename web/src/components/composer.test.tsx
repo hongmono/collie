@@ -121,10 +121,52 @@ describe("Composer — send", () => {
     const box = screen.getByPlaceholderText(/type a reply/i);
     const field = box.parentElement!;
 
-    expect(field.className).toContain("w-full");
+    expect(field.className).toContain("-mx-3");
+    expect(field.className).toContain("w-[calc(100%+1.5rem)]");
     expect(box.className).toContain("w-full");
     expect(screen.getByRole("button", { name: "Attach image" }).className).toContain("absolute");
     expect(screen.getByRole("button", { name: "Send" }).className).toContain("absolute");
+  });
+
+  it("sends from current Codex's compact status row on the first tap", async () => {
+    const user = userEvent.setup();
+    const wire: string[] = [];
+    let terminalDraft = "";
+    server.use(
+      http.get(/\/api\/pane\/[^/]+$/, () =>
+        HttpResponse.json({
+          paneId: "w1:p1",
+          text: [
+            `› ${terminalDraft || "Ask Codex to do anything"}`,
+            "",
+            "  gpt-5.6-sol medium · ~/Development/collie",
+          ].join("\n"),
+          truncated: false,
+          revision: 2,
+        }),
+      ),
+      http.post(/\/api\/pane\/[^/]+\/reply$/, async ({ request }) => {
+        const body = (await request.json()) as { text: string; submit?: boolean };
+        if (body.submit) {
+          wire.push("submit");
+          terminalDraft = "";
+        } else {
+          wire.push(`type:${body.text}`);
+          terminalDraft = body.text;
+        }
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    const props = renderComposer({ agent: "codex" });
+    const box = screen.getByPlaceholderText(/type a reply/i);
+
+    await user.type(box, "first tap sends");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => expect(wire).toEqual(["type:first tap sends", "submit"]));
+    expect(screen.queryByRole("button", { name: "Type anyway?" })).not.toBeInTheDocument();
+    expect(box).toHaveValue("");
+    expect(props.onSent).toHaveBeenCalledOnce();
   });
 
   // #34: a dialog owns the TUI's keyboard. Sending free text at one loses the message AND makes the

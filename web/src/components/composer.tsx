@@ -934,10 +934,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             Too long to keep as a saved draft — it survives switching panes, but not closing the app.
           </p>
         )}
-        {/* The field owns the full row width. Attach and Send sit inside its trailing edge, so neither
-            control carves a permanent column out of the textarea on a phone. Padding below reserves
-            exactly the active controls' footprint so text never runs underneath them. */}
-        <div className="relative w-full min-w-0">
+        {/* The field owns the full VIEWPORT row width. The composer chrome keeps a 12px gutter for
+            Controls and notices above, so this row cancels that gutter on both sides. Attach and Send
+            sit inside its trailing edge and never carve a permanent column out of the textarea. */}
+        <div className="relative -mx-3 w-[calc(100%+1.5rem)] min-w-0">
           <ChatInput
             ref={inputRef}
             value={direct.active ? direct.value : input}
