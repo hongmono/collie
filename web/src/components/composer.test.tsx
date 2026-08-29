@@ -127,7 +127,7 @@ describe("Composer — send", () => {
           text: [
             `› ${terminalDraft || "Ask Codex to do anything"}`,
             "",
-            "  gpt-5.6-sol medium · ~/Development/collie",
+            "  \x1b[38;2;114;212;231mgpt-5.6-sol medium\x1b[0m\x1b[2m · \x1b[0m\x1b[38;2;240;248;154m~/Development/collie\x1b[0m",
           ].join("\n"),
           truncated: false,
           revision: 2,
