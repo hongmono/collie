@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.8] - 2026-08-29
+
+### Fixed
+
+- Restored the established Collie reply composer while keeping terminal-width work isolated (0503e7e)
+
 ## [0.35.7] - 2026-08-29
 
 ### Fixed
