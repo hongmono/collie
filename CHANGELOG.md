@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.7] - 2026-08-29
+
+### Fixed
+
+- Composer text now uses the field's full width while Attach and Send occupy a bottom action shelf (4ac8c74)
+
 ## [0.35.6] - 2026-08-29
 
 ### Fixed
