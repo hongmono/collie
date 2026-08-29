@@ -124,6 +124,10 @@ describe("Composer — send", () => {
     expect(field.className).toContain("-mx-3");
     expect(field.className).toContain("w-[calc(100%+1.5rem)]");
     expect(box.className).toContain("w-full");
+    expect(box.className).toContain("pb-14");
+    expect(box.className).toContain("pr-3");
+    expect(box.className).not.toContain("pr-24");
+    expect(box.className).not.toContain("pr-40");
     expect(screen.getByRole("button", { name: "Attach image" }).className).toContain("absolute");
     expect(screen.getByRole("button", { name: "Send" }).className).toContain("absolute");
   });
@@ -276,6 +280,11 @@ describe("Composer — send", () => {
       expect(screen.getByTestId("status")).toHaveTextContent(/Tap Send again to type anyway/i),
     );
     expect(wire).toEqual([]);
+    // The labelled override grows horizontally, but it lives in the bottom shelf: it must never
+    // take width back from every line of the message the user is trying to send.
+    expect(box.className).toContain("pb-14");
+    expect(box.className).toContain("pr-3");
+    expect(box.className).not.toContain("pr-40");
 
     await user.click(screen.getByRole("button", { name: "Type anyway?" }));
     await waitFor(() => expect(wire).toContain("type:please do not approve anything"));

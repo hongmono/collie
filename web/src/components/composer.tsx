@@ -936,7 +936,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         )}
         {/* The field owns the full VIEWPORT row width. The composer chrome keeps a 12px gutter for
             Controls and notices above, so this row cancels that gutter on both sides. Attach and Send
-            sit inside its trailing edge and never carve a permanent column out of the textarea. */}
+            sit in a reserved BOTTOM shelf: reserving horizontal padding made every text row 96px
+            narrower (160px during confirmation), even though the buttons only occupy the bottom. */}
         <div className="relative -mx-3 w-[calc(100%+1.5rem)] min-w-0">
           <ChatInput
             ref={inputRef}
@@ -969,12 +970,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             autoCorrect={direct.active ? "off" : undefined}
             spellCheck={direct.active ? false : undefined}
             className={cn(
-              // Room for both buttons tucked into the bottom-right of the field. `block`
-              // matters: a textarea is inline-level by default, so the wrapper inherits a few px of
-              // baseline gap beneath it and the absolutely-positioned button hangs past the field's
-              // bottom edge.
-              "block w-full",
-              forcingSend || confirmingSend ? "pr-40" : "pr-24",
+              // The bottom padding is the action shelf. Keep normal horizontal field padding so
+              // every line — including wrapped Korean prose — can use the viewport width. `block`
+              // also removes the inline textarea's baseline gap below the wrapper.
+              "block w-full pb-14 pr-3",
               direct.active &&
                 "border-primary focus-visible:border-primary focus-visible:ring-primary/30",
             )}
