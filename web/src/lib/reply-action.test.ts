@@ -202,6 +202,23 @@ describe("sendGuardedReply", () => {
     ]);
   });
 
+  it("frames a multiline reply as bracketed paste so its newlines cannot submit early", async () => {
+    const calls = harness(() => paneWithDraft("first line second line"));
+
+    const out = await sendGuardedReply({
+      paneId: "w1:p1",
+      text: "first line\nsecond line",
+      agent: "claude",
+      ...instant,
+    });
+
+    expect(out).toEqual({ status: "sent" });
+    expect(calls).toEqual([
+      { text: "\x1b[200~first line\nsecond line\x1b[201~", submit: false },
+      { text: "", submit: true },
+    ]);
+  });
+
   // omp paints an inline completion suggestion after the operator's text, in its own colour. It is
   // not in the input buffer, but it IS on the row the guard reads back, so before `composerGhost`
   // (harness/omp/markers.ts) the verification could never match and EVERY send omp suggested for
@@ -377,7 +394,10 @@ describe("sendGuardedReply", () => {
 
     expect(out).toEqual({ status: "sent" });
     expect(calls).toEqual([
-      { text: "first line\nsecond line\nthird line\nfourth line", submit: false },
+      {
+        text: "\x1b[200~first line\nsecond line\nthird line\nfourth line\x1b[201~",
+        submit: false,
+      },
       { text: "", submit: true },
     ]);
   });

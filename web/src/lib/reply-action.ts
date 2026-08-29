@@ -55,6 +55,21 @@ const REGEXP_META = /[.*+?^${}()|[\]\\]/g;
  *  other gap on screen is whitespace the operator really typed, so `sent` must carry it too. */
 const FOLD_SEAM = " ";
 
+// Herdr's pane.send_text writes raw PTY bytes. An LF in an ordinary write is therefore an Enter,
+// and Codex submits at the first line break before the verification loop can see the complete
+// draft. Frame only multiline guarded replies as terminal bracketed paste: compatible agent TUIs
+// then insert the line breaks into their composer, while the long-standing single-line path stays
+// byte-for-byte unchanged. The legacy no-adapter path deliberately does not use this helper because
+// an arbitrary shell/program may not have bracketed-paste mode enabled.
+const PASTE_START = "\x1b[200~";
+const PASTE_END = "\x1b[201~";
+
+function wireReplyText(text: string): string {
+  return /[\r\n]/.test(text)
+    ? `${PASTE_START}${text.replace(/\r\n?/g, "\n")}${PASTE_END}`
+    : text;
+}
+
 /** `Intl.Segmenter` is the newest platform API anything in this bundle depends on (Firefox 125,
  *  Safari 14.1), and this module is in the main chunk — composer.tsx imports it eagerly, so a
  *  module-scope `new Intl.Segmenter` on an engine without it throws at evaluation and white-screens
@@ -277,7 +292,7 @@ export async function sendGuardedReply(args: GuardedReplyArgs): Promise<ReplyOut
 
   let typed;
   try {
-    typed = await sendReply(args.paneId, args.text, false, args.session);
+    typed = await sendReply(args.paneId, wireReplyText(args.text), false, args.session);
   } catch (e) {
     return { status: "error", error: message(e) };
   }
