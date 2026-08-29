@@ -934,81 +934,85 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             Too long to keep as a saved draft — it survives switching panes, but not closing the app.
           </p>
         )}
-        {/* The field owns the full VIEWPORT row width. The composer chrome keeps a 12px gutter for
-            Controls and notices above, so this row cancels that gutter on both sides. Attach and Send
-            sit in a reserved BOTTOM shelf: reserving horizontal padding made every text row 96px
-            narrower (160px during confirmation), even though the buttons only occupy the bottom. */}
-        <div className="relative -mx-3 w-[calc(100%+1.5rem)] min-w-0">
-          <ChatInput
-            ref={inputRef}
-            value={direct.active ? direct.value : input}
-            onChange={direct.active ? direct.onChange : (e) => updateInput(e.target.value)}
-            onCompositionStart={direct.active ? direct.onCompositionStart : undefined}
-            onCompositionEnd={direct.active ? direct.onCompositionEnd : undefined}
-            onKeyDown={
-              direct.active
-                ? direct.onKeyDown
-                : (e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      onSendClick();
+        {/* gap-3, not gap-2: with the attach button moved inside the field this row is only the
+            field and Send, and the old spacing left them looking joined. */}
+        <div className="flex items-end gap-3">
+          {/* The input and its attach button share one box: the button is positioned INSIDE the
+              field, messenger-style, rather than sitting beside it as a third control in the row.
+              It used to occupy a full-height slot to the left, which spent the widest part of the
+              composer on the least-used action; inside the field it costs nothing but a strip of
+              padding the text was not using anyway. `pr-11` on the textarea reserves that strip so a
+              long line can never run underneath the icon. */}
+          <div className="relative min-w-0 flex-1">
+            <ChatInput
+              ref={inputRef}
+              value={direct.active ? direct.value : input}
+              onChange={direct.active ? direct.onChange : (e) => updateInput(e.target.value)}
+              onCompositionStart={direct.active ? direct.onCompositionStart : undefined}
+              onCompositionEnd={direct.active ? direct.onCompositionEnd : undefined}
+              onKeyDown={
+                direct.active
+                  ? direct.onKeyDown
+                  : (e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        onSendClick();
+                      }
                     }
-                  }
-            }
-            onPaste={onPasteImage}
-            placeholder={
-              gone
-                ? "Pane is gone"
-                : readOnly
-                  ? "Read-only — device not authorised"
-                  : direct.active
-                    ? "Type into the terminal…"
-                    : isShell
-                      ? "Type a shell command…"
-                      : "Type a reply…"
-            }
-            autoCorrect={direct.active ? "off" : undefined}
-            spellCheck={direct.active ? false : undefined}
-            className={cn(
-              // The bottom padding is the action shelf. Keep normal horizontal field padding so
-              // every line — including wrapped Korean prose — can use the viewport width. `block`
-              // also removes the inline textarea's baseline gap below the wrapper.
-              "block w-full pb-14 pr-3",
-              direct.active &&
-                "border-primary focus-visible:border-primary focus-visible:ring-primary/30",
-            )}
-            disabled={locked}
-            rows={1}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            // bottom-1, not centred: the field grows upward as the draft wraps, and a vertically
-            // centred button would drift up with it, away from the thumb and away from the send
-            // button it pairs with. Pinned to the bottom it stays put at any height.
-            className={cn(
-              "absolute bottom-1 size-9 rounded-full text-muted-foreground",
-              forcingSend || confirmingSend ? "right-[7.75rem]" : "right-12",
-            )}
-            disabled={uploading || locked || direct.active}
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={() => fileRef.current?.click()}
-            aria-label="Attach image"
-          >
-            {uploading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ImagePlus className="size-4" />
-            )}
-          </Button>
+              }
+              onPaste={onPasteImage}
+              placeholder={
+                gone
+                  ? "Pane is gone"
+                  : readOnly
+                    ? "Read-only — device not authorised"
+                    : direct.active
+                      ? "Type into the terminal…"
+                      : isShell
+                        ? "Type a shell command…"
+                        : "Type a reply…"
+              }
+              autoCorrect={direct.active ? "off" : undefined}
+              spellCheck={direct.active ? false : undefined}
+              className={cn(
+                // Room for the attach button tucked into the bottom-right of the field. `block`
+                // matters: a textarea is inline-level by default, so the wrapper inherits a few px
+                // of baseline gap beneath it and the absolutely-positioned button hangs past the
+                // field's bottom edge.
+                "block pr-11",
+                direct.active &&
+                  "border-primary focus-visible:border-primary focus-visible:ring-primary/30",
+              )}
+              disabled={locked}
+              rows={1}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              // bottom-1, not centred: the field grows upward as the draft wraps, and a vertically
+              // centred button would drift up with it, away from the thumb and away from the send
+              // button it pairs with. Pinned to the bottom it stays put at any height.
+              className="absolute bottom-1 right-1 size-9 rounded-full text-muted-foreground"
+              disabled={uploading || locked || direct.active}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => fileRef.current?.click()}
+              aria-label="Attach image"
+            >
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ImagePlus className="size-4" />
+              )}
+            </Button>
+          </div>
           {!direct.active && forcingSend ? (
             // The pre-flight refused and the user is being offered the override. Labelled for what it
             // actually does — TYPE the text into whatever is on screen — not "send", because the
             // submit key is still conditional on the verify step behind it.
             <Button
               variant="destructive"
-              className="absolute bottom-0 right-0 h-11 rounded-full px-4 text-sm font-semibold"
+              className="h-11 shrink-0 rounded-full px-4 text-sm font-semibold"
               onClick={onSendClick}
               disabled={locked || !input.trim() || sending}
               aria-label="Type anyway?"
@@ -1018,7 +1022,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           ) : !direct.active && confirmingSend ? (
             <Button
               variant="destructive"
-              className="absolute bottom-0 right-0 h-11 rounded-full px-4 text-sm font-semibold"
+              className="h-11 shrink-0 rounded-full px-4 text-sm font-semibold"
               onClick={onSendClick}
               disabled={locked || !input.trim() || sending}
               aria-label="Really send?"
@@ -1028,7 +1032,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           ) : (
             <Button
               size="icon"
-              className="absolute bottom-0 right-0 size-11 rounded-full"
+              className="size-11 shrink-0 rounded-full"
               onClick={direct.active ? () => direct.deactivate() : onSendClick}
               disabled={locked || sending}
               aria-label={direct.active ? "Stop typing into terminal" : "Send"}

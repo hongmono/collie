@@ -116,22 +116,6 @@ function renderComposerWithStatus(overrides: Partial<ComponentProps<typeof Compo
 }
 
 describe("Composer — send", () => {
-  it("gives the reply field the full composer width and overlays its actions", () => {
-    renderComposer();
-    const box = screen.getByPlaceholderText(/type a reply/i);
-    const field = box.parentElement!;
-
-    expect(field.className).toContain("-mx-3");
-    expect(field.className).toContain("w-[calc(100%+1.5rem)]");
-    expect(box.className).toContain("w-full");
-    expect(box.className).toContain("pb-14");
-    expect(box.className).toContain("pr-3");
-    expect(box.className).not.toContain("pr-24");
-    expect(box.className).not.toContain("pr-40");
-    expect(screen.getByRole("button", { name: "Attach image" }).className).toContain("absolute");
-    expect(screen.getByRole("button", { name: "Send" }).className).toContain("absolute");
-  });
-
   it("sends from current Codex's compact status row on the first tap", async () => {
     const user = userEvent.setup();
     const wire: string[] = [];
@@ -280,12 +264,6 @@ describe("Composer — send", () => {
       expect(screen.getByTestId("status")).toHaveTextContent(/Tap Send again to type anyway/i),
     );
     expect(wire).toEqual([]);
-    // The labelled override grows horizontally, but it lives in the bottom shelf: it must never
-    // take width back from every line of the message the user is trying to send.
-    expect(box.className).toContain("pb-14");
-    expect(box.className).toContain("pr-3");
-    expect(box.className).not.toContain("pr-40");
-
     await user.click(screen.getByRole("button", { name: "Type anyway?" }));
     await waitFor(() => expect(wire).toContain("type:please do not approve anything"));
     // The picker never turns into an input box, so type-then-verify polls out and reports `stalled`.
