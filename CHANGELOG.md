@@ -6,6 +6,13 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.35.5] - 2026-08-29
+
+### Fixed
+
+- Codex row reflow now removes terminal padding without splitting Korean or hyphenated words (8453f85)
+- Reply fields now use the full composer width with Attach and Send overlaid inside (8453f85)
+
 ## [0.35.4] - 2026-08-28
 
 ### Fixed
