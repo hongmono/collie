@@ -6,6 +6,16 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.41.0] - 2026-08-30
+
+### Added
+
+- Display settings can adjust terminal side padding from a 4px default (0f1c2e8)
+
+### Changed
+
+- Terminal output preserves PTY line breaks instead of guessing prose reflow (0f1c2e8)
+
 ## [0.40.1] - 2026-08-30
 
 ### Fixed
