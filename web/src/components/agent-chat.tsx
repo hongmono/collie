@@ -23,7 +23,6 @@ import { Composer, type ComposerHandle } from "@/components/composer";
 import { ThreadSidebar } from "@/components/agent-sidebar";
 import { AgentIcon } from "@/components/agent-icon";
 import { MobileTabSwitcher } from "@/components/mobile-tab-switcher";
-import { TabStrip } from "@/components/tab-strip";
 import { PaneStrip } from "@/components/pane-strip";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { StatusArea } from "@/components/status-area";
@@ -541,13 +540,13 @@ export function AgentChat({
   const paneTitle = agent ? (
     <>
       {isShell ? (
-        <div className="mr-2.5 flex size-6 shrink-0 items-center justify-center rounded-full border bg-muted md:mr-0">
+        <div className="mr-2.5 flex size-6 shrink-0 items-center justify-center rounded-full border bg-muted">
           <TerminalSquare className="size-3 text-muted-foreground" />
         </div>
       ) : (
         // Deliberately smaller than the size-8 Collie mark beside it — the agent logo is the pane's
         // subject, not a second brand competing with Collie's for the header.
-        <AgentIcon agent={agent.agent} className="mr-2.5 size-6 md:mr-0" />
+        <AgentIcon agent={agent.agent} className="mr-2.5 size-6" />
       )}
       <div className="min-w-0 flex-1">
         {/* A user-set pane label leads when present (the identifier they chose), then Claude's own
@@ -663,36 +662,24 @@ export function AgentChat({
           ) : undefined
         }
       >
-        {/* Mobile folds tab navigation into this title; desktop keeps the direct horizontal strip
-            below. Both retain the space overview and tab actions instead of trading reachability for
-            vertical room. */}
+        {/* Tab navigation always lives in this title, at every viewport width. The sheet retains the
+            space overview and tab actions without spending a permanent row below the header. */}
         {agent ? (
-          <>
-            <MobileTabSwitcher
-              workspaceId={agent.workspaceId}
-              workspaceLabel={agent.workspaceLabel}
-              tabs={tabs}
-              agents={agents}
-              selected={agent.tabId}
-              onSelect={goToTab}
-              onOpenSpace={() => openSpace(agent.workspaceId)}
-              onNewTab={newTab}
-              session={session}
-              readOnly={readOnly}
-              onRenamed={() => revalidator.revalidate()}
-              onClosed={closeTab}
-              trigger={paneTitle}
-            />
-
-            <button
-              type="button"
-              onClick={() => openSpace(agent.workspaceId)}
-              aria-label={`Open ${agent.workspaceLabel} overview`}
-              className="-mx-1 hidden min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1 py-0.5 text-left transition-colors active:bg-muted/60 md:flex"
-            >
-              {paneTitle}
-            </button>
-          </>
+          <MobileTabSwitcher
+            workspaceId={agent.workspaceId}
+            workspaceLabel={agent.workspaceLabel}
+            tabs={tabs}
+            agents={agents}
+            selected={agent.tabId}
+            onSelect={goToTab}
+            onOpenSpace={() => openSpace(agent.workspaceId)}
+            onNewTab={newTab}
+            session={session}
+            readOnly={readOnly}
+            onRenamed={() => revalidator.revalidate()}
+            onClosed={closeTab}
+            trigger={paneTitle}
+          />
         ) : (
           <div className="min-w-0 flex-1">
             <span className="truncate font-semibold">(agent gone)</span>
@@ -710,28 +697,6 @@ export function AgentChat({
 
         {/* Read-only notice when this device isn't allowlisted (the composer below is disabled too). */}
         <ReadOnlyBanner device={device} />
-
-        {/* In-pane tab bar: the current space's tabs above the mirror — switch tab without leaving the
-            pane, or create one with +. No "All" here (you're always in a specific tab). */}
-        {agent && (
-          <div className="hidden md:block">
-            <TabStrip
-              workspaceId={agent.workspaceId}
-              tabs={tabs}
-              agents={agents}
-              selected={agent.tabId}
-              onSelect={(id) => id && goToTab(id)}
-              onNewTab={newTab}
-              allowAll={false}
-              session={session}
-              readOnly={readOnly}
-              onRenamed={() => revalidator.revalidate()}
-              // Closing the tab this pane lives in kills the pane too — leave for Home the same way a
-              // pane-close does (onBack); closing any other tab just revalidates so it drops out.
-              onClosed={closeTab}
-            />
-          </div>
-        )}
 
         {/* Pane switcher: the panes that share this tab (space › tab › pane). Mobile shows them as a
             tabbed row rather than tiling the panes; only appears when the tab holds more than one. */}

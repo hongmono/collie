@@ -23,10 +23,10 @@ interface MobileTabSwitcherProps {
   onClosed: (tabId: string) => void;
 }
 
-// On a phone the pane title already names the current tab, so a second full-width tab strip repeats
-// the same information and steals a terminal row. The title becomes the switcher trigger instead;
-// its sheet retains every route the old strip exposed, while the adjacent + keeps creation one tap
-// away. Desktop still renders TabStrip because it has room for direct horizontal switching.
+// The pane title already names the current tab, so a second full-width tab strip repeats the same
+// information and steals a terminal row at every viewport width. The title is always the switcher
+// trigger; its sheet retains every route the old strip exposed, while the adjacent + keeps creation
+// one tap away. The historical Mobile name is kept to avoid a noisy file/component rename.
 export function MobileTabSwitcher({
   workspaceId,
   workspaceLabel,
@@ -57,7 +57,7 @@ export function MobileTabSwitcher({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-center md:hidden">
+    <div className="flex min-w-0 flex-1 items-center">
       <button
         type="button"
         onClick={() => setOpen(true)}

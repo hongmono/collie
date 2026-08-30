@@ -93,17 +93,15 @@ function SpaceOverviewSentinel() {
 describe("AgentChat — header title block", () => {
   it("leads with the space, puts the directory on the subline, and drops the redundant agent name", () => {
     renderChat(); // claude @ /home/you/webapp → ~/webapp
-    // Mobile and desktop title controls coexist behind responsive display classes.
-    expect(screen.getAllByText("webapp")).toHaveLength(2); // space leads
-    expect(screen.getAllByText("~/webapp")).toHaveLength(2); // directory on the subline
+    expect(screen.getByText("webapp")).toBeInTheDocument(); // space leads
+    expect(screen.getByText("~/webapp")).toBeInTheDocument(); // directory on the subline
     // The agent is conveyed by its icon (aria-label only), so its name isn't repeated as text.
     expect(screen.queryByText(/claude/i)).toBeNull();
     expect(screen.getByRole("button", { name: /switch tab in webapp/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /new tab in webapp/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /open webapp overview/i })).toBeInTheDocument();
   });
 
-  it("opens the space overview (all tabs + panes) when the title block is tapped", async () => {
+  it("opens the space overview from the title's tab switcher", async () => {
     const user = userEvent.setup();
     const agent = fixtureAgents[0]!; // workspaceId w1
     const router = createMemoryRouter(
@@ -129,7 +127,8 @@ describe("AgentChat — header title block", () => {
     );
     render(<RouterProvider router={router} />);
 
-    await user.click(screen.getByRole("button", { name: /open webapp overview/i }));
+    await user.click(screen.getByRole("button", { name: /switch tab in webapp/i }));
+    await user.click(screen.getByRole("button", { name: "All panes" }));
     expect(await screen.findByText("overview:w1")).toBeInTheDocument();
   });
 });
