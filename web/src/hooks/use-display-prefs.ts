@@ -11,6 +11,8 @@ export interface DisplayPrefs {
   wrap: boolean;
   /** Font size in px for the mirror pre (default: 12, range: 9–16). */
   fontSize: number;
+  /** Horizontal padding around the terminal mirror in px (default: 4, range: 0–16). */
+  horizontalPadding: number;
   /**
    * Raw-terminal escape hatch (default: false). When on, the mirror renders the PLAIN terminal —
    * every Claude grammar (chrome stripping, native prompt-select buttons, the status strip) is
@@ -32,16 +34,28 @@ export interface DisplayPrefs {
   tapToFocus: boolean;
 }
 
-// NOT bumped for `tapToFocus`: loadPrefs defaults each field independently, so a v4 payload written
-// before it existed simply reads the default. Bumping would silently reset everyone's wrap, size and
-// raw-terminal choice to buy nothing.
+// Not bumped when independently-defaulted fields are added: an older v4 payload keeps every choice
+// it has and receives the new field's default instead of silently resetting all display preferences.
 const STORAGE_KEY = "collie:display-prefs:v4";
 export const FONT_MIN = 9;
 export const FONT_MAX = 16;
-const DEFAULTS: DisplayPrefs = { wrap: true, fontSize: 12, rawTerminal: false, tapToFocus: true };
+export const HORIZONTAL_PADDING_MIN = 0;
+export const HORIZONTAL_PADDING_MAX = 16;
+export const HORIZONTAL_PADDING_STEP = 2;
+const DEFAULTS: DisplayPrefs = {
+  wrap: true,
+  fontSize: 12,
+  horizontalPadding: 4,
+  rawTerminal: false,
+  tapToFocus: true,
+};
 
 function clampFont(n: number): number {
   return Math.max(FONT_MIN, Math.min(FONT_MAX, Math.round(n)));
+}
+
+function clampHorizontalPadding(n: number): number {
+  return Math.max(HORIZONTAL_PADDING_MIN, Math.min(HORIZONTAL_PADDING_MAX, Math.round(n)));
 }
 
 function loadPrefs(): DisplayPrefs {
@@ -54,6 +68,10 @@ function loadPrefs(): DisplayPrefs {
     return {
       wrap: typeof p.wrap === "boolean" ? p.wrap : DEFAULTS.wrap,
       fontSize: typeof p.fontSize === "number" ? clampFont(p.fontSize) : DEFAULTS.fontSize,
+      horizontalPadding:
+        typeof p.horizontalPadding === "number"
+          ? clampHorizontalPadding(p.horizontalPadding)
+          : DEFAULTS.horizontalPadding,
       rawTerminal: typeof p.rawTerminal === "boolean" ? p.rawTerminal : DEFAULTS.rawTerminal,
       tapToFocus: typeof p.tapToFocus === "boolean" ? p.tapToFocus : DEFAULTS.tapToFocus,
     };
@@ -80,6 +98,8 @@ export interface UseDisplayPrefsReturn {
   setFontSize: (size: number) => void;
   /** Step font size by delta (positive = larger), clamped to 9–16. */
   stepFontSize: (delta: number) => void;
+  /** Step terminal side padding by delta, clamped to 0–16px. */
+  stepHorizontalPadding: (delta: number) => void;
   /** Toggle or explicitly set the raw-terminal escape hatch. */
   setRawTerminal: (raw: boolean) => void;
   /** Toggle or explicitly set whether a mirror tap focuses the composer. */
@@ -113,6 +133,17 @@ export function useDisplayPrefs(): UseDisplayPrefsReturn {
     });
   }, []);
 
+  const stepHorizontalPadding = useCallback((delta: number) => {
+    setPrefs((p) => {
+      const next: DisplayPrefs = {
+        ...p,
+        horizontalPadding: clampHorizontalPadding(p.horizontalPadding + delta),
+      };
+      savePrefs(next);
+      return next;
+    });
+  }, []);
+
   const setRawTerminal = useCallback((rawTerminal: boolean) => {
     setPrefs((p) => {
       const next: DisplayPrefs = { ...p, rawTerminal };
@@ -129,5 +160,13 @@ export function useDisplayPrefs(): UseDisplayPrefsReturn {
     });
   }, []);
 
-  return { prefs, setWrap, setFontSize, stepFontSize, setRawTerminal, setTapToFocus };
+  return {
+    prefs,
+    setWrap,
+    setFontSize,
+    stepFontSize,
+    stepHorizontalPadding,
+    setRawTerminal,
+    setTapToFocus,
+  };
 }

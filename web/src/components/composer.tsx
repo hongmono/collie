@@ -64,6 +64,7 @@ interface ComposerProps {
   prefs: DisplayPrefs;
   setWrap: (wrap: boolean) => void;
   stepFontSize: (delta: number) => void;
+  stepHorizontalPadding: (delta: number) => void;
   setRawTerminal: (raw: boolean) => void;
   setTapToFocus: (tapToFocus: boolean) => void;
   fitMode?: boolean;
@@ -141,7 +142,7 @@ function ComposerDock({
 }
 
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { paneId, session, agent, isShell, gone, readOnly, dialogPresent, text, terminalDraft, rawTerminalDraft, prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus, fitMode = false, onFitModeChange, onSent },
+  { paneId, session, agent, isShell, gone, readOnly, dialogPresent, text, terminalDraft, rawTerminalDraft, prefs, setWrap, stepFontSize, stepHorizontalPadding, setRawTerminal, setTapToFocus, fitMode = false, onFitModeChange, onSent },
   ref,
 ) {
   const revalidator = useRevalidator();
@@ -831,6 +832,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               prefs={prefs}
               setWrap={setWrap}
               stepFontSize={stepFontSize}
+              stepHorizontalPadding={stepHorizontalPadding}
               setRawTerminal={setRawTerminal}
               setTapToFocus={setTapToFocus}
               fitMode={fitMode}

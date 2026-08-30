@@ -84,6 +84,14 @@ describe("AgentChat — reply flow", () => {
   });
 });
 
+describe("AgentChat — terminal spacing", () => {
+  it("uses the default 4px side padding on the measured terminal scrollport", () => {
+    renderChat();
+    const pre = screen.getByText("recent pane output").closest("pre");
+    expect(pre?.parentElement).toHaveStyle({ paddingInline: "4px" });
+  });
+});
+
 describe("AgentChat — fit panes as opened", () => {
   it("fits an opened pane once when the browser-session mode is armed", async () => {
     const grids: Array<{ cols: number; rows: number }> = [];

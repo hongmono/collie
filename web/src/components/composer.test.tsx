@@ -45,9 +45,10 @@ function renderComposer(overrides: Partial<ComponentProps<typeof Composer>> = {}
     text: "pane output",
     terminalDraft: null,
     rawTerminalDraft: null,
-    prefs: { wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true },
+    prefs: { wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true },
     setWrap: vi.fn(),
     stepFontSize: vi.fn(),
+    stepHorizontalPadding: vi.fn(),
     setRawTerminal: vi.fn(),
     setTapToFocus: vi.fn(),
     onSent: vi.fn(),
@@ -92,9 +93,10 @@ function renderComposerWithStatus(overrides: Partial<ComponentProps<typeof Compo
     text: "pane output",
     terminalDraft: null,
     rawTerminalDraft: null,
-    prefs: { wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true },
+    prefs: { wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true },
     setWrap: vi.fn(),
     stepFontSize: vi.fn(),
+    stepHorizontalPadding: vi.fn(),
     setRawTerminal: vi.fn(),
     setTapToFocus: vi.fn(),
     onSent: vi.fn(),
@@ -481,9 +483,10 @@ describe("Composer — send", () => {
               text="pane output"
               terminalDraft={null}
               rawTerminalDraft="leftover"
-              prefs={{ wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true }}
+              prefs={{ wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true }}
               setWrap={vi.fn()}
               stepFontSize={vi.fn()}
+              stepHorizontalPadding={vi.fn()}
               setRawTerminal={vi.fn()}
               setTapToFocus={vi.fn()}
               onSent={vi.fn()}
@@ -574,9 +577,10 @@ describe("Composer — send", () => {
       text: "pane output",
       terminalDraft: null,
       rawTerminalDraft: null,
-      prefs: { wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true },
+      prefs: { wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true },
       setWrap: vi.fn(),
       stepFontSize: vi.fn(),
+      stepHorizontalPadding: vi.fn(),
       setRawTerminal: vi.fn(),
       setTapToFocus: vi.fn(),
       onSent: vi.fn(),
@@ -670,9 +674,10 @@ describe("Composer — typing into the terminal", () => {
             text="pane output"
             terminalDraft={null}
             rawTerminalDraft={null}
-            prefs={{ wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true }}
+            prefs={{ wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true }}
             setWrap={vi.fn()}
             stepFontSize={vi.fn()}
+            stepHorizontalPadding={vi.fn()}
             setRawTerminal={vi.fn()}
             setTapToFocus={vi.fn()}
             onSent={vi.fn()}
@@ -802,9 +807,10 @@ describe("Composer — typing into the terminal", () => {
             text="pane output"
             terminalDraft={null}
             rawTerminalDraft={null}
-            prefs={{ wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true }}
+            prefs={{ wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true }}
             setWrap={vi.fn()}
             stepFontSize={vi.fn()}
+            stepHorizontalPadding={vi.fn()}
             setRawTerminal={vi.fn()}
             setTapToFocus={vi.fn()}
             onSent={vi.fn()}
@@ -993,9 +999,10 @@ describe("Composer — typing into the terminal", () => {
             text="pane output"
             terminalDraft={null}
             rawTerminalDraft={null}
-            prefs={{ wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true }}
+            prefs={{ wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true }}
             setWrap={vi.fn()}
             stepFontSize={vi.fn()}
+            stepHorizontalPadding={vi.fn()}
             setRawTerminal={vi.fn()}
             setTapToFocus={vi.fn()}
             onSent={vi.fn()}
@@ -1255,9 +1262,10 @@ function renderDraftHarness(overrides: Partial<ComponentProps<typeof Composer>> 
       readOnly: false,
       dialogPresent: false,
       text: "pane output",
-      prefs: { wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true },
+      prefs: { wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true },
       setWrap: vi.fn(),
       stepFontSize: vi.fn(),
+      stepHorizontalPadding: vi.fn(),
       setRawTerminal: vi.fn(),
       setTapToFocus: vi.fn(),
       onSent: vi.fn(),
@@ -1526,9 +1534,10 @@ describe("Composer — in-flight echo suppression (match-last-sent)", () => {
       text: "pane output",
       terminalDraft: draft,
       rawTerminalDraft: draft,
-      prefs: { wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true },
+      prefs: { wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true },
       setWrap: vi.fn(),
       stepFontSize: vi.fn(),
+      stepHorizontalPadding: vi.fn(),
       setRawTerminal: vi.fn(),
       setTapToFocus: vi.fn(),
       onSent: vi.fn(),
@@ -1976,6 +1985,21 @@ describe("Composer — display prefs behind the gear", () => {
     expect(screen.getByRole("switch", { name: "Wrap lines" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Raw terminal" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Decrease font size" })).toBeInTheDocument();
+    expect(screen.getByText("4px")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Decrease terminal side padding" })).toBeInTheDocument();
+  });
+
+  it("steps terminal side padding from Display", async () => {
+    const user = userEvent.setup();
+    const stepHorizontalPadding = vi.fn();
+    renderComposer({ stepHorizontalPadding });
+
+    await user.click(screen.getByRole("button", { name: "Display settings" }));
+    await user.click(screen.getByRole("button", { name: "Increase terminal side padding" }));
+    await user.click(screen.getByRole("button", { name: "Decrease terminal side padding" }));
+
+    expect(stepHorizontalPadding).toHaveBeenNthCalledWith(1, 2);
+    expect(stepHorizontalPadding).toHaveBeenNthCalledWith(2, -2);
   });
 
   it("the Display dock shares the single drawer slot with Keys", async () => {
@@ -2152,9 +2176,10 @@ describe("Composer — draft persistence", () => {
       text: "pane output",
       terminalDraft: null,
       rawTerminalDraft: null,
-      prefs: { wrap: true, fontSize: 11, rawTerminal: false, tapToFocus: true },
+      prefs: { wrap: true, fontSize: 11, horizontalPadding: 4, rawTerminal: false, tapToFocus: true },
       setWrap: vi.fn(),
       stepFontSize: vi.fn(),
+      stepHorizontalPadding: vi.fn(),
       setRawTerminal: vi.fn(),
       setTapToFocus: vi.fn(),
       onSent: vi.fn(),

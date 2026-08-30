@@ -71,46 +71,11 @@ describe("mirror line wrapping", () => {
     expect(cls).not.toContain("whitespace-pre-wrap");
   });
 
-  it("reflows Codex prose hard-wrapped by a narrow pane", () => {
-    const rule = "─".repeat(43);
-    const first = `  ${"가".repeat(20)}`; // 42 terminal cells: a full 43-col row minus one.
-    const { container } = render(
-      <AnsiOutput text={`${first}\n  다음 문장\n\n${rule}`} agent="codex" />,
-    );
-    expect(container.querySelector("pre")?.textContent).toBe(`${first}다음 문장\n\n${rule}`);
-  });
-
-  it("drops terminal padding only where reflow joins two Codex rows", () => {
-    const first = `${"x".repeat(43)}   `;
-    const second = `      continued${" ".repeat(8)}`;
-    const { container } = render(
-      <AnsiOutput text={`${first}\n${second}\nshort   `} agent="codex" />,
-    );
-
-    expect(container.querySelector("pre")?.textContent).toBe(
-      `${"x".repeat(43)} continued${" ".repeat(8)}\nshort   `,
-    );
-  });
-
-  it("does not invent spaces inside Korean or hyphenated words split by the PTY", () => {
-    const korean = `${"가".repeat(41)}하겠`;
-    const hyphenated = `${"x".repeat(78)}product-`;
-    const { container } = render(
-      <AnsiOutput text={`${korean}\n  습니다.\n${hyphenated}\n  design`} agent="codex" />,
-    );
-
-    expect(container.querySelector("pre")?.textContent).toBe(
-      `${korean}습니다.\n${hyphenated}design`,
-    );
-  });
-
-  it("keeps Codex structure and raw-terminal line breaks faithful", () => {
+  it("keeps hard-wrapped output byte-faithful for Codex and raw terminal modes", () => {
     const full = "x".repeat(43);
     const text = `${full}\n  continuation\n${full}\n  - next item`;
     const { container: lifted } = render(<AnsiOutput text={text} agent="codex" />);
-    expect(lifted.querySelector("pre")?.textContent).toBe(
-      `${full} continuation\n${full}\n  - next item`,
-    );
+    expect(lifted.querySelector("pre")?.textContent).toBe(text);
 
     const { container: raw } = render(<AnsiOutput text={text} />);
     expect(raw.querySelector("pre")?.textContent).toBe(text);

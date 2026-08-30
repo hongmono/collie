@@ -9,7 +9,7 @@ describe("useDisplayPrefs", () => {
 
   it("returns defaults when localStorage is empty", () => {
     const { result } = renderHook(() => useDisplayPrefs());
-    expect(result.current.prefs).toEqual({ wrap: true, fontSize: 12, rawTerminal: false, tapToFocus: true });
+    expect(result.current.prefs).toEqual({ wrap: true, fontSize: 12, horizontalPadding: 4, rawTerminal: false, tapToFocus: true });
   });
 
   it("persists wrap=true and reloads it on mount", () => {
@@ -27,9 +27,9 @@ describe("useDisplayPrefs", () => {
   });
 
   it("loads persisted prefs from localStorage on mount", () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ wrap: false, fontSize: 14, rawTerminal: true, tapToFocus: false }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ wrap: false, fontSize: 14, horizontalPadding: 8, rawTerminal: true, tapToFocus: false }));
     const { result } = renderHook(() => useDisplayPrefs());
-    expect(result.current.prefs).toEqual({ wrap: false, fontSize: 14, rawTerminal: true, tapToFocus: false });
+    expect(result.current.prefs).toEqual({ wrap: false, fontSize: 14, horizontalPadding: 8, rawTerminal: true, tapToFocus: false });
   });
 
   it("persists rawTerminal and reloads it on mount (the escape hatch survives a reload)", () => {
@@ -56,7 +56,18 @@ describe("useDisplayPrefs", () => {
   it("reads a pre-tapToFocus payload without discarding the prefs it does have", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ wrap: false, fontSize: 15, rawTerminal: true }));
     const { result } = renderHook(() => useDisplayPrefs());
-    expect(result.current.prefs).toEqual({ wrap: false, fontSize: 15, rawTerminal: true, tapToFocus: true });
+    expect(result.current.prefs).toEqual({ wrap: false, fontSize: 15, horizontalPadding: 4, rawTerminal: true, tapToFocus: true });
+  });
+
+  it("persists terminal side padding and clamps it to 0–16px", () => {
+    const { result } = renderHook(() => useDisplayPrefs());
+    act(() => result.current.stepHorizontalPadding(4));
+    expect(result.current.prefs.horizontalPadding).toBe(8);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).horizontalPadding).toBe(8);
+    act(() => result.current.stepHorizontalPadding(100));
+    expect(result.current.prefs.horizontalPadding).toBe(16);
+    act(() => result.current.stepHorizontalPadding(-100));
+    expect(result.current.prefs.horizontalPadding).toBe(0);
   });
 
   it("setFontSize clamps below minimum to 9", () => {
@@ -92,12 +103,12 @@ describe("useDisplayPrefs", () => {
   it("falls back to defaults on malformed JSON", () => {
     localStorage.setItem(STORAGE_KEY, "not-json{{{");
     const { result } = renderHook(() => useDisplayPrefs());
-    expect(result.current.prefs).toEqual({ wrap: true, fontSize: 12, rawTerminal: false, tapToFocus: true });
+    expect(result.current.prefs).toEqual({ wrap: true, fontSize: 12, horizontalPadding: 4, rawTerminal: false, tapToFocus: true });
   });
 
   it("falls back to defaults when stored value is not an object", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(42));
     const { result } = renderHook(() => useDisplayPrefs());
-    expect(result.current.prefs).toEqual({ wrap: true, fontSize: 12, rawTerminal: false, tapToFocus: true });
+    expect(result.current.prefs).toEqual({ wrap: true, fontSize: 12, horizontalPadding: 4, rawTerminal: false, tapToFocus: true });
   });
 });

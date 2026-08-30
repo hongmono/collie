@@ -17,7 +17,6 @@ import {
 import { MIRROR_SPACE, MIRROR_INVERT, styleFor } from "@/components/mirror-space";
 import { findMatches, splitSegment, type FindMatch } from "@/lib/find";
 import { findLinks } from "@/lib/links";
-import { displayWidth } from "@/lib/text-width";
 import { PromptSelectBlock, type PromptBlockAction } from "@/components/prompt-select-block";
 import { WizardBlock } from "@/components/wizard-block";
 import { PreviewSelectBlock, type PreviewBlockAction } from "@/components/preview-select-block";
@@ -83,60 +82,6 @@ export interface AnsiOutputProps {
 // Stable empty result so the "not searching" path keeps the same `matches` reference across polls
 // (no needless effect re-runs / parent count updates while find is closed).
 const NO_MATCHES: FindMatch[] = [];
-
-// Codex paints prose into its current PTY width before pane.read sees it. When that pane is a narrow
-// desktop split (43 columns in the reported case), preserving every newline wastes half a phone even
-// though the mirror itself is full-width. In Wrap mode, join only rows that look like word-wrapped
-// prose and let CSS wrap the resulting logical line to the browser width. Raw-terminal mode omits
-// the agent adapter, so it remains the byte-faithful escape hatch.
-const STRUCTURAL_START = /^(?:[•›│┌┐└┘├┤┬┴┼╭╮╰╯]|[-+*]\s|\d+[.)]\s|#{1,6}\s|```)/u;
-const RULE_RUN = /[─━═╌╍┄┅┈┉]{8,}/u;
-
-function hasBackground(line: RawBlock["lines"][number]): boolean {
-  return line.segments.some((segment) => segment.bg !== undefined);
-}
-
-function codexLineSeparator(
-  previous: RawBlock["lines"][number],
-  current: RawBlock["lines"][number],
-  columns: number,
-): "\n" | " " | "" {
-  const previousText = lineText(previous).trimEnd();
-  const currentText = lineText(current).trimStart();
-  const previousWidth = displayWidth(previousText);
-  if (
-    columns < 30 ||
-    previousText === "" ||
-    currentText === "" ||
-    previous.noWrap ||
-    current.noWrap ||
-    hasBackground(previous) ||
-    hasBackground(current) ||
-    RULE_RUN.test(previousText) ||
-    RULE_RUN.test(currentText) ||
-    STRUCTURAL_START.test(currentText) ||
-    previousWidth < columns - 4
-  ) {
-    return "\n";
-  }
-
-  // Unicode terminal wrapping may break a Korean eojeol between any two syllables. Adding the
-  // prose separator there invents a visible typo ("하겠 습니다"). A trailing hyphen already is
-  // the separator for an ASCII word split, so it likewise needs no extra blank.
-  const previousLast = previousText.at(-1) ?? "";
-  const currentFirst = currentText.at(0) ?? "";
-  if (
-    (/\p{Script=Hangul}/u.test(previousLast) && /\p{Script=Hangul}/u.test(currentFirst)) ||
-    (previousLast === "-" && /[\p{L}\p{N}]/u.test(currentFirst))
-  ) {
-    return "";
-  }
-
-  // Keep one character in place of the source newline. The renderer trims only the terminal padding
-  // touching this joined boundary; raw offsets still advance over every source character so find and
-  // link ranges remain aligned with the byte-faithful haystack.
-  return " ";
-}
 
 // The mirror's dark colour space and its light-theme inversion live in mirror-space.ts — the
 // statusline strip renders the same terminal segments and the two must not drift.
@@ -220,11 +165,6 @@ export const AnsiOutput = memo(function AnsiOutput({
   const segments = useMemo(() => parseAnsi(text), [text]);
   const sourceLines = useMemo(() => splitLines(segments), [segments]);
   const blocks = useMemo(() => buildBlocks(sourceLines, { agent }), [sourceLines, agent]);
-  const terminalColumns = useMemo(() => {
-    let widest = 0;
-    for (const line of sourceLines) widest = Math.max(widest, displayWidth(lineText(line)));
-    return widest;
-  }, [sourceLines]);
 
   const rawBlocks = useMemo(
     () => blocks.filter((b): b is RawBlock => b.kind === "raw"),
@@ -378,34 +318,17 @@ export const AnsiOutput = memo(function AnsiOutput({
 
   const renderBlock = (block: RawBlock, bi: number) => {
     if (bi > 0) offset += 1; // the "\n" separating this block from the previous
-    const separators = block.lines.slice(1).map((line, index) =>
-      agent === "codex" && wrap
-        ? codexLineSeparator(block.lines[index]!, line, terminalColumns)
-        : "\n",
-    );
     return (
       <Fragment key={bi}>
         {bi > 0 ? "\n" : null}
         {block.lines.map((line, li) => {
           if (li > 0) offset += 1; // the "\n" separating this line from the previous
-          const text = lineText(line);
-          const trimLeading = li > 0 && separators[li - 1] !== "\n"
-            ? text.length - text.trimStart().length
-            : 0;
-          const visibleEnd = li < separators.length && separators[li] !== "\n"
-            ? text.trimEnd().length
-            : text.length;
-          let lineOffset = 0;
           const segNodes = line.segments.map((s, si) => {
             const segStart = offset;
             offset += s.text.length;
-            const start = Math.max(0, trimLeading - lineOffset);
-            const end = Math.min(s.text.length, visibleEnd - lineOffset);
-            lineOffset += s.text.length;
-            if (end <= start) return null;
             return (
               <span key={si} style={styleFor(s)}>
-                {renderSegment(s.text.slice(start, end), segStart + start)}
+                {renderSegment(s.text, segStart)}
               </span>
             );
           });
@@ -416,7 +339,7 @@ export const AnsiOutput = memo(function AnsiOutput({
           );
           return (
             <Fragment key={li}>
-              {li > 0 ? separators[li - 1] : null}
+              {li > 0 ? "\n" : null}
               {content}
             </Fragment>
           );

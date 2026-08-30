@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
-import { AArrowDown, AArrowUp } from "lucide-react";
+import { AArrowDown, AArrowUp, Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import type { DisplayPrefs } from "@/hooks/use-display-prefs";
-import { FONT_MAX, FONT_MIN } from "@/hooks/use-display-prefs";
+import {
+  FONT_MAX,
+  FONT_MIN,
+  HORIZONTAL_PADDING_MAX,
+  HORIZONTAL_PADDING_MIN,
+  HORIZONTAL_PADDING_STEP,
+} from "@/hooks/use-display-prefs";
 
 // The mirror's display prefs, as LABELLED rows behind the composer's ⚙ toggle.
 //
@@ -22,6 +28,7 @@ interface DisplayPrefsContentProps {
   prefs: DisplayPrefs;
   setWrap: (wrap: boolean) => void;
   stepFontSize: (delta: number) => void;
+  stepHorizontalPadding: (delta: number) => void;
   setRawTerminal: (raw: boolean) => void;
   setTapToFocus: (tapToFocus: boolean) => void;
   fitMode: boolean;
@@ -59,6 +66,7 @@ export function DisplayPrefsContent({
   prefs,
   setWrap,
   stepFontSize,
+  stepHorizontalPadding,
   setRawTerminal,
   setTapToFocus,
   fitMode,
@@ -146,6 +154,37 @@ export function DisplayPrefsContent({
               aria-label="Increase font size"
             >
               <AArrowUp className="size-4" />
+            </Button>
+          </div>
+        }
+      />
+      <Row
+        label="Side padding"
+        hint="Space between terminal text and the screen edges."
+        control={
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-9"
+              disabled={prefs.horizontalPadding <= HORIZONTAL_PADDING_MIN}
+              onClick={() => stepHorizontalPadding(-HORIZONTAL_PADDING_STEP)}
+              aria-label="Decrease terminal side padding"
+            >
+              <Minus className="size-4" />
+            </Button>
+            <span className="w-10 text-center font-mono text-xs tabular-nums text-muted-foreground">
+              {prefs.horizontalPadding}px
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-9"
+              disabled={prefs.horizontalPadding >= HORIZONTAL_PADDING_MAX}
+              onClick={() => stepHorizontalPadding(HORIZONTAL_PADDING_STEP)}
+              aria-label="Increase terminal side padding"
+            >
+              <Plus className="size-4" />
             </Button>
           </div>
         }
