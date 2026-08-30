@@ -219,6 +219,32 @@ describe("sendGuardedReply", () => {
     ]);
   });
 
+  it("submits a Codex reply whose explicit paragraph breaks paint blank composer rows", async () => {
+    const text = "first paragraph\n\n\nsecond paragraph";
+    const screen = [
+      "› first paragraph",
+      "",
+      "",
+      "  second paragraph",
+      "",
+      "  model x · /some/dir · Context 50% left",
+    ].join("\n");
+    const calls = harness(() => screen);
+
+    const out = await sendGuardedReply({
+      paneId: "w1:p1",
+      text,
+      agent: "codex",
+      ...instant,
+    });
+
+    expect(out).toEqual({ status: "sent" });
+    expect(calls).toEqual([
+      { text: `\x1b[200~${text}\x1b[201~`, submit: false },
+      { text: "", submit: true },
+    ]);
+  });
+
   // omp paints an inline completion suggestion after the operator's text, in its own colour. It is
   // not in the input buffer, but it IS on the row the guard reads back, so before `composerGhost`
   // (harness/omp/markers.ts) the verification could never match and EVERY send omp suggested for
