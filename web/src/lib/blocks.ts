@@ -194,9 +194,25 @@ const PURE_HORIZONTAL_BORDER = new RegExp(
   `^([${PURE_HORIZONTAL_RULE_GLYPH_CLASS}])\\1{${MIN_NO_WRAP_BORDER_LENGTH - 1},}$`,
 );
 
+// Codex ends a completed turn with one terminal-width mixed rule:
+//
+//   ─ Worked for 1m 08s ────────…
+//
+// It is deliberately NOT covered by PURE_HORIZONTAL_BORDER: broad labelled-border clipping would
+// crop session names and input-box labels (pinned below in blocks.test.ts). But allowing this exact
+// status row to wrap is also wrong: on a phone the trailing rule spills onto a second visual row and
+// looks like several separators. Keep the exception exact to Codex's stable label + duration shape,
+// and require a substantial trailing rule so ordinary prose mentioning "Worked for 2m" still wraps.
+const CODEX_WORKED_FOR_BORDER = new RegExp(
+  `^[${PURE_HORIZONTAL_RULE_GLYPH_CLASS}]+\\s+Worked for \\d+(?:h|m|s)(?: \\d+(?:m|s))*\\s+[${PURE_HORIZONTAL_RULE_GLYPH_CLASS}]{8,}$`,
+);
+
 function styledLine(segments: AnsiSegment[]): StyledLine {
   const text = segments.map((segment) => segment.text).join("");
-  return PURE_HORIZONTAL_BORDER.test(text.trim()) ? { segments, noWrap: true } : { segments };
+  const trimmed = text.trim();
+  return PURE_HORIZONTAL_BORDER.test(trimmed) || CODEX_WORKED_FOR_BORDER.test(trimmed)
+    ? { segments, noWrap: true }
+    : { segments };
 }
 
 // The two generic StyledLine probes. They live HERE, in the core AST module that imports nothing

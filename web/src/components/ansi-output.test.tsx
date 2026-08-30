@@ -156,6 +156,20 @@ describe("mirror line wrapping", () => {
     expect(pannedPre.querySelector("span.inline-block")).toBeNull();
     expect(pannedPre.textContent).toBe(`${border}\n`);
   });
+
+  it("keeps Codex's completed-turn rule on one clipped row instead of wrapping its tail", () => {
+    const completed = `─ Worked for 1m 08s ${"─".repeat(76)}`;
+    const { container } = render(<AnsiOutput text={`${completed}\n`} agent="codex" />);
+    const pre = container.querySelector("pre")!;
+    const clipped = pre.querySelector("span.inline-block")!;
+
+    expect(clipped).not.toBeNull();
+    expect(clipped.className).toContain("max-w-full");
+    expect(clipped.className).toContain("overflow-hidden");
+    expect(clipped.className).toContain("whitespace-pre");
+    expect(clipped.textContent).toBe(completed);
+    expect(pre.textContent).toBe(`${completed}\n`);
+  });
 });
 
 // URLs printed by an agent are plain characters — the mirror finds them and wraps those ranges in

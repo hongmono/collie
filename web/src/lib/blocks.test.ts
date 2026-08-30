@@ -146,6 +146,23 @@ describe("splitLines — no-wrap terminal borders", () => {
   });
 
   it.each([
+    "─ Worked for 8s " + "─".repeat(72),
+    "─ Worked for 1m 08s " + "─".repeat(64),
+    "─ Worked for 2h 03m 04s " + "─".repeat(56),
+  ])("clips Codex's completed-turn rule to one visual row: %s", (line) => {
+    expect(splitLines(parseAnsi(line))[0]!.noWrap).toBe(true);
+  });
+
+  it.each([
+    "Worked for 8s", // prose/status without the terminal rule
+    `─ Worked for a while ${"─".repeat(40)}`, // not Codex's duration shape
+    `─ Worked for 8s ${"─".repeat(7)}`, // too short to be a terminal-width tail
+    `${"─".repeat(20)} session Worked for 8s ${"─".repeat(20)}`, // labelled border remains visible
+  ])("does not broaden completed-turn clipping to %s", (line) => {
+    expect(splitLines(parseAnsi(line))[0]!.noWrap).toBeUndefined();
+  });
+
+  it.each([
     ["short Unicode rule", "─".repeat(19)],
     ["ASCII rule", "-".repeat(40)],
     ["labeled border", `${"─".repeat(20)} Pi ${"─".repeat(20)}`],
