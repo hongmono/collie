@@ -9,6 +9,8 @@ import { useDisplayPrefs } from "@/hooks/use-display-prefs";
 import { useStableTerminalDraft } from "@/hooks/use-terminal-draft";
 import { isConnecting } from "@/lib/connection";
 import { setStatus } from "@/lib/status";
+import { resizeTerminal } from "@/lib/api";
+import { measureTerminalGrid } from "@/lib/terminal-grid";
 import { ChatMessageList, type ChatMessageListHandle } from "@/components/ui/chat/chat-message-list";
 import { BottomSheet } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/app-header";
@@ -589,6 +591,22 @@ export function AgentChat({
     composerRef.current?.focusInput();
   }
 
+  const fitTerminal = useCallback(async () => {
+    const scrollport = listRef.current?.getScrollElement();
+    const grid = scrollport ? measureTerminalGrid(scrollport) : null;
+    if (!grid) {
+      setStatus("Could not measure the terminal viewport", "error");
+      return;
+    }
+    try {
+      await resizeTerminal(paneId, grid, session);
+      setStatus(`Terminal resized to ${grid.cols}×${grid.rows}`, "success");
+      revalidator.revalidate();
+    } catch (err) {
+      setStatus((err as Error).message || "Terminal resize failed", "error");
+    }
+  }, [paneId, session, revalidator]);
+
   return (
     <div className="flex min-h-0 w-full min-w-0 max-w-[100dvw] flex-1 flex-col overflow-x-hidden">
       {/* Header — the SAME AppHeader shell the dashboard and space mount, so the Collie mark is
@@ -874,6 +892,7 @@ export function AgentChat({
             stepFontSize={stepFontSize}
             setRawTerminal={setRawTerminal}
             setTapToFocus={setTapToFocus}
+            onFitTerminal={fitTerminal}
             onSent={onSent}
           />
         </div>

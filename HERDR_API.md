@@ -1,4 +1,4 @@
-# Herdr socket API — empirically verified (v0.7.2, protocol 16)
+# Herdr socket API — empirically verified (through v0.8.2)
 
 Probed live against a running Herdr server, most recently re-probed 2026-07-07 and cross-checked
 against the bundled machine-readable schema — `herdr api schema [--json | --output PATH]`
@@ -37,6 +37,25 @@ the socket assumptions behind the design in [`ARCHITECTURE.md`](./ARCHITECTURE.m
 | `pane.send_text` | `{pane_id, text}` | (ack) |
 | `pane.send_keys` | `{pane_id, keys}` | (ack) |
 | `agent.send` | `{target, text}` | (ack) — writes **literal** text, no Enter |
+
+### Terminal control CLI (one-shot PTY fit only)
+
+This is not a socket RPC. Herdr 0.8.2 exposes
+`herdr terminal session control <pane> --cols N --rows N`; stdin accepts NDJSON. Collie's only use
+is an authorised Display → Fit action that writes `{"type":"terminal.release"}` immediately after
+attach. It never passes `--takeover` and never consumes terminal frames.
+
+Live probe, 2026-08-30, isolated named session:
+
+- With a Herdr desktop client attached at a `53×23` pane, a `40×15` one-shot control was restored to
+  `53×23` by that client.
+- After detaching the desktop client, `control --cols 40 --rows 15` followed by immediate release
+  changed `pane.list.scroll.viewport_rows` to `15`; a subsequent `stty size` printed `15 40`.
+- Selecting the exact session by `HERDR_SOCKET_PATH` works for a named session, so the bridge uses the
+  already-resolved `SessionRuntime.socketPath` rather than reconstructing a client-supplied path.
+
+The size is therefore shared PTY state, retained while headless and superseded by a real Herdr
+client. See [ADR 0008](./.adr/0008-collie-does-not-run-a-terminal-emulator.md) for the strict exception.
 
 - `pane.read` `source` ∈ `visible | recent | recent_unwrapped | detection` — **snake_case on the
   wire**: `recent-unwrapped` gets `invalid_request: unknown variant` (live-probed 2026-08-03,

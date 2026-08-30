@@ -1998,6 +1998,19 @@ describe("Composer — display prefs behind the gear", () => {
     expect(screen.getByRole("button", { name: "Keys" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Display settings" }));
     expect(screen.getByRole("switch", { name: "Wrap lines" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fit" })).toBeDisabled();
+  });
+
+  it("closes Display before asking the parent to fit the terminal", async () => {
+    const user = userEvent.setup();
+    const onFitTerminal = vi.fn();
+    renderComposer({ onFitTerminal });
+
+    await user.click(screen.getByRole("button", { name: "Display settings" }));
+    await user.click(screen.getByRole("button", { name: "Fit" }));
+
+    await waitFor(() => expect(onFitTerminal).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("switch", { name: "Wrap lines" })).not.toBeInTheDocument();
   });
 });
 

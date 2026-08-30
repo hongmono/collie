@@ -1,6 +1,6 @@
 # 0008 — Collie does not run a terminal emulator
 
-Status: **Accepted** (2026-08-04)
+Status: **Accepted** (2026-08-04; amended 2026-08-30)
 
 ## Context
 
@@ -77,12 +77,18 @@ Two things. Neither requires an emulator to obtain.
   issues already (`herdr#1709`, `herdr#2250`); an accepted upstream field lands cursor **inside** the
   existing contract, with no second renderer and no corpus migration.
 
-### `control` is worse than not using it, and `observe` is unprobed
+### Persistent `control` is worse than not using it, and `observe` is unprobed
 
-`control` accepts `terminal.resize` against the **shared** PTY and arbitrates with
-one-controller-at-a-time semantics plus `--takeover`. Adopting it means Collie fights the person at
-the desk, and "fixes" #23 for the phone by breaking the desktop. Collie already has every write path
-it needs on the socket — `send_text` and `send_keys`, one-shot and stateless.
+`control` accepts terminal dimensions against the **shared** PTY and offers `--takeover`. Keeping a
+controller attached would make Collie fight the person at the desk, and "fix" #23 for the phone by
+breaking the desktop. Collie already has every ordinary write path it needs on the socket —
+`send_text` and `send_keys`, one-shot and stateless.
+
+There is one narrower operation that does not adopt the stream: an explicit user action can attach
+with `--cols/--rows`, send `terminal.release` immediately, and retain the resulting PTY size while
+Herdr is headless. Live-probed against Herdr 0.8.2 on 2026-08-30: `40×15 → release → stty size`
+reported `15 40`; attaching a desktop client caused its own size to win again. That is a shared-state
+mutation with a reversible, visible consequence, not a rendering transport.
 
 And `HERDR_API.md` verifies **nothing** about `observe`/`control`: not the frame format, not whether
 cursor state is even in it, not multi-observer semantics, not a version floor. It is a CLI
@@ -106,6 +112,11 @@ the rows Herdr already rendered, and the client contract stays `StyledLine[]`.**
 - **A cell-grid wire protocol is refused even inside a hypothetical emulator.** The phone shows ~50 of
   a ~200-column pane, so a column-faithful grid reopens the pan-vs-wrap question 0.21.0 settled toward
   wrap.
+- **One-shot manual PTY fitting is allowed as the sole `terminal session control` exception.** It must
+  be initiated by an authorised user, target only the open pane, derive `cols/rows` from the rendered
+  mirror, omit `--takeover`, send `terminal.release` immediately, and never run from resize observers,
+  polling, keyboard changes, or reconnects. The UI must say that an attached desktop client can set
+  the shared PTY back to its own size.
 
 ## Consequences
 
@@ -118,6 +129,9 @@ the rows Herdr already rendered, and the client contract stays `StyledLine[]`.**
   closed by inference, and this decision declines to close it by re-rendering.
 - **The fixture corpus stays deliberately coupled to `pane.read` output.** That coupling is now a
   decision rather than an accident, and anything that would break it inherits the cost of re-capturing.
+- **Manual Fit can reflow the running TUI.** In a headless session that is the requested outcome; if a
+  desktop Herdr client is attached, its geometry remains authoritative and may immediately replace
+  the phone's one-shot size. Collie never arbitrates or retries.
 - **Herdr's `[theme]` and its own UI stay irrelevant to what Collie draws** — unchanged by this, but
   worth restating, since "use a real emulator" is sometimes proposed as the way to match the desktop's
   colours. It would not; see [ADR 0002](./0002-invert-the-light-terminal-mirror.md).

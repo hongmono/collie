@@ -66,6 +66,8 @@ interface ComposerProps {
   stepFontSize: (delta: number) => void;
   setRawTerminal: (raw: boolean) => void;
   setTapToFocus: (tapToFocus: boolean) => void;
+  /** Close Display, then measure/apply the full mirror viewport after layout settles. */
+  onFitTerminal?: () => void | Promise<void>;
   /** Snap the mirror to the live tail (follow + revalidate + scroll) after a successful send. */
   onSent: () => void;
 }
@@ -138,7 +140,7 @@ function ComposerDock({
 }
 
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { paneId, session, agent, isShell, gone, readOnly, dialogPresent, text, terminalDraft, rawTerminalDraft, prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus, onSent },
+  { paneId, session, agent, isShell, gone, readOnly, dialogPresent, text, terminalDraft, rawTerminalDraft, prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus, onFitTerminal, onSent },
   ref,
 ) {
   const revalidator = useRevalidator();
@@ -151,6 +153,15 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // or funnelled through `pressKeys`, which is synchronous with its own check.
   const lockedRef = useRef(locked);
   lockedRef.current = locked;
+
+  async function fitTerminal() {
+    if (locked) return;
+    // The Display dock itself shrinks the mirror. Close it first, then wait for the browser to lay
+    // out the full scrollport so the rows sent to Herdr describe the normal pane, not the settings UI.
+    setDrawer(null);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    await onFitTerminal?.();
+  }
 
   // The phone-owned draft, restored from (and written through to) the per-pane draft store — the
   // pane view is keyed by paneId, so without this, stepping over to another tab mid-reply ate the
@@ -817,6 +828,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               stepFontSize={stepFontSize}
               setRawTerminal={setRawTerminal}
               setTapToFocus={setTapToFocus}
+              onFitTerminal={() => void fitTerminal()}
+              fitDisabled={locked}
             />
           </ComposerDock>
         )}

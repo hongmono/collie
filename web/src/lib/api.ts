@@ -363,6 +363,18 @@ export function sendKeys(
   );
 }
 
+/** Apply this client's measured character grid to the real pane PTY once. */
+export function resizeTerminal(
+  paneId: string,
+  grid: { cols: number; rows: number },
+  session?: string,
+): Promise<{ ok: true; cols: number; rows: number }> {
+  return req(withSession(`/api/pane/${encodeURIComponent(paneId)}/resize`, session), {
+    method: "POST",
+    body: JSON.stringify(grid),
+  });
+}
+
 /** Close a pane ("kill the agent"). */
 export function closePane(paneId: string, session?: string): Promise<ActionResponse> {
   return req<ActionResponse>(withSession(`/api/pane/${encodeURIComponent(paneId)}/close`, session), {

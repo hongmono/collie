@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AArrowDown, AArrowUp } from "lucide-react";
+import { AArrowDown, AArrowUp, Maximize2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -24,6 +24,8 @@ interface DisplayPrefsContentProps {
   stepFontSize: (delta: number) => void;
   setRawTerminal: (raw: boolean) => void;
   setTapToFocus: (tapToFocus: boolean) => void;
+  onFitTerminal: () => void;
+  fitDisabled?: boolean;
 }
 
 // One settings row: name (+ optional explanation) on the left, control on the right. Module-level so
@@ -58,6 +60,8 @@ export function DisplayPrefsContent({
   stepFontSize,
   setRawTerminal,
   setTapToFocus,
+  onFitTerminal,
+  fitDisabled = false,
 }: DisplayPrefsContentProps) {
   return (
     <div className="divide-y divide-border/60 border-t border-border/60 bg-muted/30 px-3 py-1">
@@ -98,6 +102,21 @@ export function DisplayPrefsContent({
             onCheckedChange={setRawTerminal}
             aria-label="Raw terminal"
           />
+        }
+      />
+      <Row
+        label="Fit terminal to this device"
+        hint="Resizes the real PTY once. An attached desktop Herdr client may set it back to the desktop size."
+        control={
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={fitDisabled}
+            onClick={onFitTerminal}
+          >
+            <Maximize2 className="mr-1.5 size-3.5" />
+            Fit
+          </Button>
         }
       />
       <Row

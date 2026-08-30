@@ -16,6 +16,7 @@ import {
   normalizeTabLabel,
   paneReadResponse,
   replyPane,
+  resizePane,
   resolveStaticPath,
   sendReplySteps,
   startupWarnings,
@@ -452,6 +453,47 @@ describe("pane write prompt binding", () => {
     expect(res.status).toBe(200);
     expect(client.reads).toEqual([]);
     expect(client.keys).toEqual([["w1:p1", ["1"]]]);
+  });
+
+  test("resize validates and audits the applied terminal grid", async () => {
+    const { audit, entries } = auditEntries();
+    const calls: unknown[][] = [];
+    const res = await resizePane(
+      "/tmp/herdr.sock",
+      "w1:p1",
+      request({ cols: 51, rows: 29 }),
+      audit,
+      "phone",
+      "default",
+      async (...args) => { calls.push(args); },
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, cols: 51, rows: 29 });
+    expect(calls).toEqual([["/tmp/herdr.sock", "w1:p1", { cols: 51, rows: 29 }]]);
+    expect(entries[0]).toMatchObject({
+      action: "pane.resize",
+      paneId: "w1:p1",
+      session: "default",
+      device: "phone",
+      detail: { cols: 51, rows: 29 },
+    });
+  });
+
+  test("resize rejects an invalid grid before invoking Herdr", async () => {
+    const { audit } = auditEntries();
+    let called = false;
+    const res = await resizePane(
+      "/tmp/herdr.sock",
+      "w1:p1",
+      request({ cols: 0, rows: 29 }),
+      audit,
+      null,
+      "default",
+      async () => { called = true; },
+    );
+    expect(res.status).toBe(400);
+    expect(called).toBe(false);
   });
 
   test("reply without expected_prompt writes without an extra pane read", async () => {

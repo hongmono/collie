@@ -20,6 +20,7 @@ import { herdTagFor, type SessionRegistry } from "./sessions.ts";
 import type { Snooze } from "./snooze.ts";
 import { imageExtFromBytes, SNIFF_BYTES } from "./uploads.ts";
 import type { UpdateMonitor } from "./update.ts";
+import { parseTerminalGrid, resizeTerminal } from "./terminal-resize.ts";
 import type { StateEngine } from "./state-engine.ts";
 import { adapterFor, buildJournalRegistry } from "./journal/registry.ts";
 import { TranscriptStore } from "./journal/store.ts";
@@ -105,7 +106,7 @@ export function isLoopbackPeer(address: string | null | undefined): boolean {
   return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v4);
 }
 
-const PANE_ROUTE = /^\/api\/pane\/([^/]+)(?:\/(reply|keys|upload|close|rename|history))?$/;
+const PANE_ROUTE = /^\/api\/pane\/([^/]+)(?:\/(reply|keys|upload|close|rename|resize|history))?$/;
 // Turns per history page. "Show entire history" means the WHOLE conversation, so the client asks for
 // everything and this ceiling is a safety net against a pathological log, not the normal path — a
 // 1400-turn session is ~1.4 MB raw / ~400 KB gzipped, which a tailnet link serves fine. The default
@@ -275,7 +276,7 @@ export function startServer(opts: {
         const paneId = decodeURIComponent(paneMatch[1]!);
         const action = paneMatch[2];
         // Reading a pane is allowed for any access-gated client; every action (reply/keys/upload/
-        // close) types into or restructures a terminal, so it additionally needs an authorised device.
+        // close/resize) drives or restructures a terminal, so it additionally needs an authorised device.
         // `history` is a READ despite being an action segment — it only ever reads a log off disk.
         const isRead = !action || action === "history";
         const denied = guard(req, cfg, isRead ? "read" : "write");
@@ -306,6 +307,8 @@ export function startServer(opts: {
         if (action === "upload" && req.method === "POST") return uploadPane(cfg, paneId, req, audit, device, session);
         if (action === "close" && req.method === "POST") return closePane(herdr, paneId, req, audit, device, session);
         if (action === "rename" && req.method === "POST") return renamePane(herdr, paneId, req, audit, device, session);
+        if (action === "resize" && req.method === "POST")
+          return resizePane(rt.socketPath, paneId, req, audit, device, session);
         return text("method not allowed", 405);
       }
 
@@ -778,6 +781,43 @@ export async function keysPane(
       });
     }
     return json({ ok: false, error: (err as Error).message } satisfies ActionResponse, ae);
+  }
+}
+
+export async function resizePane(
+  socketPath: string,
+  paneId: string,
+  req: Request,
+  audit: AuditLog,
+  device: string | null,
+  session: string,
+  resize: typeof resizeTerminal = resizeTerminal,
+): Promise<Response> {
+  let body: { cols?: unknown; rows?: unknown };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return text("bad body", 400);
+  }
+  const grid = parseTerminalGrid(body);
+  if (!grid) return text("cols and rows must be integers from 1 to 1000", 400);
+  try {
+    await resize(socketPath, paneId, grid);
+    audit.record({ action: "pane.resize", paneId, session, device, detail: { ...grid } });
+    return json({ ok: true, ...grid }, req.headers.get("accept-encoding"));
+  } catch (err) {
+    audit.record({
+      action: "pane.resize",
+      paneId,
+      session,
+      device,
+      detail: { ...grid, applied: false, error: (err as Error).message },
+    });
+    return json(
+      { ok: false, error: (err as Error).message },
+      req.headers.get("accept-encoding"),
+      502,
+    );
   }
 }
 

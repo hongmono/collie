@@ -168,9 +168,10 @@ the unit name; the Herdr action runs from anywhere.
 - Pane output is rendered as **React text nodes** (never `innerHTML`); the ANSI parser only derives
   colors/weights. Keep it that way — it's the XSS boundary. Strict CSP + same-origin gate stay.
 - **Collie runs no terminal emulator** — `pane.read` returns Herdr's already-rendered grid, so the
-  parser needs colour and nothing else. Don't add one on either side, and don't reach for
-  `terminal session observe`/`control`: a stale mirror is a transport problem, cursor position is an
-  upstream ask, and `control` resizes the *shared* PTY
+  parser needs colour and nothing else. Don't add one on either side or use `terminal session
+  observe` for rendering: a stale mirror is a transport problem and cursor position is an upstream
+  ask. The sole `terminal session control` exception is the explicit Display → Fit action: one-shot,
+  never `--takeover`, release immediately, and never automatic because it resizes the *shared* PTY
   ([ADR 0008](./.adr/0008-collie-does-not-run-a-terminal-emulator.md)).
 - **Never use a `dark:` variant inside the mirror `<pre>`** — it tracks the root theme, which is
   backwards in a surface that renders dark under every theme and inverts in light
