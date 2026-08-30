@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.40.0] - 2026-08-30
+
+### Added
+
+- A browser-session Fit mode sizes each pane once as it is opened (7e0d9c6)
+
 ## [0.39.0] - 2026-08-30
 
 ### Added
