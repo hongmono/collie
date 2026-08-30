@@ -1998,19 +1998,31 @@ describe("Composer — display prefs behind the gear", () => {
     expect(screen.getByRole("button", { name: "Keys" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Display settings" }));
     expect(screen.getByRole("switch", { name: "Wrap lines" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Fit" })).toBeDisabled();
+    expect(screen.getByRole("switch", { name: "Fit panes as I open them" })).toBeDisabled();
   });
 
-  it("closes Display before asking the parent to fit the terminal", async () => {
+  it("closes Display before enabling fit-as-opened mode", async () => {
     const user = userEvent.setup();
-    const onFitTerminal = vi.fn();
-    renderComposer({ onFitTerminal });
+    const onFitModeChange = vi.fn();
+    renderComposer({ onFitModeChange });
 
     await user.click(screen.getByRole("button", { name: "Display settings" }));
-    await user.click(screen.getByRole("button", { name: "Fit" }));
+    await user.click(screen.getByRole("switch", { name: "Fit panes as I open them" }));
 
-    await waitFor(() => expect(onFitTerminal).toHaveBeenCalledOnce());
+    await waitFor(() => expect(onFitModeChange).toHaveBeenCalledWith(true));
     expect(screen.queryByRole("switch", { name: "Wrap lines" })).not.toBeInTheDocument();
+  });
+
+  it("disables fit mode immediately without closing Display", async () => {
+    const user = userEvent.setup();
+    const onFitModeChange = vi.fn();
+    renderComposer({ fitMode: true, onFitModeChange });
+
+    await user.click(screen.getByRole("button", { name: "Display settings" }));
+    await user.click(screen.getByRole("switch", { name: "Fit panes as I open them" }));
+
+    expect(onFitModeChange).toHaveBeenCalledWith(false);
+    expect(screen.getByRole("switch", { name: "Wrap lines" })).toBeInTheDocument();
   });
 });
 

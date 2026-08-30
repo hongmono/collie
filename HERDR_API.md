@@ -38,12 +38,13 @@ the socket assumptions behind the design in [`ARCHITECTURE.md`](./ARCHITECTURE.m
 | `pane.send_keys` | `{pane_id, keys}` | (ack) |
 | `agent.send` | `{target, text}` | (ack) — writes **literal** text, no Enter |
 
-### Terminal control CLI (one-shot PTY fit only)
+### Terminal control CLI (user-armed PTY fit only)
 
 This is not a socket RPC. Herdr 0.8.2 exposes
 `herdr terminal session control <pane> --cols N --rows N`; stdin accepts NDJSON. Collie's only use
-is an authorised Display → Fit action that writes `{"type":"terminal.release"}` immediately after
-attach. It never passes `--takeover` and never consumes terminal frames.
+is the authorised, browser-session-scoped “Fit panes as I open them” mode. For each pane the user
+opens, once at most, it writes `{"type":"terminal.release"}` immediately after attach. It never
+passes `--takeover`, consumes terminal frames, or reacts to viewport changes.
 
 Live probe, 2026-08-30, isolated named session:
 

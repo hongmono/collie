@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AArrowDown, AArrowUp, Maximize2 } from "lucide-react";
+import { AArrowDown, AArrowUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -24,7 +24,8 @@ interface DisplayPrefsContentProps {
   stepFontSize: (delta: number) => void;
   setRawTerminal: (raw: boolean) => void;
   setTapToFocus: (tapToFocus: boolean) => void;
-  onFitTerminal: () => void;
+  fitMode: boolean;
+  onFitModeChange: (enabled: boolean) => void;
   fitDisabled?: boolean;
 }
 
@@ -60,7 +61,8 @@ export function DisplayPrefsContent({
   stepFontSize,
   setRawTerminal,
   setTapToFocus,
-  onFitTerminal,
+  fitMode,
+  onFitModeChange,
   fitDisabled = false,
 }: DisplayPrefsContentProps) {
   return (
@@ -105,18 +107,17 @@ export function DisplayPrefsContent({
         }
       />
       <Row
-        label="Fit terminal to this device"
-        hint="Resizes the real PTY once. An attached desktop Herdr client may set it back to the desktop size."
+        label="Fit panes as I open them"
+        hint="For this browser session, fits each pane once when opened. A connected desktop Herdr client may set the shared PTY back to its size."
+        htmlFor="pref-fit-panes"
         control={
-          <Button
-            variant="outline"
-            size="sm"
+          <Switch
+            id="pref-fit-panes"
+            checked={fitMode}
             disabled={fitDisabled}
-            onClick={onFitTerminal}
-          >
-            <Maximize2 className="mr-1.5 size-3.5" />
-            Fit
-          </Button>
+            onCheckedChange={onFitModeChange}
+            aria-label="Fit panes as I open them"
+          />
         }
       />
       <Row

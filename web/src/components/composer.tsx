@@ -66,8 +66,9 @@ interface ComposerProps {
   stepFontSize: (delta: number) => void;
   setRawTerminal: (raw: boolean) => void;
   setTapToFocus: (tapToFocus: boolean) => void;
-  /** Close Display, then measure/apply the full mirror viewport after layout settles. */
-  onFitTerminal?: () => void | Promise<void>;
+  fitMode?: boolean;
+  /** Enabling closes Display first so the parent measures the normal full-height mirror. */
+  onFitModeChange?: (enabled: boolean) => void;
   /** Snap the mirror to the live tail (follow + revalidate + scroll) after a successful send. */
   onSent: () => void;
 }
@@ -140,7 +141,7 @@ function ComposerDock({
 }
 
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { paneId, session, agent, isShell, gone, readOnly, dialogPresent, text, terminalDraft, rawTerminalDraft, prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus, onFitTerminal, onSent },
+  { paneId, session, agent, isShell, gone, readOnly, dialogPresent, text, terminalDraft, rawTerminalDraft, prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus, fitMode = false, onFitModeChange, onSent },
   ref,
 ) {
   const revalidator = useRevalidator();
@@ -154,13 +155,17 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const lockedRef = useRef(locked);
   lockedRef.current = locked;
 
-  async function fitTerminal() {
+  async function changeFitMode(enabled: boolean) {
     if (locked) return;
-    // The Display dock itself shrinks the mirror. Close it first, then wait for the browser to lay
-    // out the full scrollport so the rows sent to Herdr describe the normal pane, not the settings UI.
-    setDrawer(null);
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    await onFitTerminal?.();
+    if (enabled) {
+      // The Display dock itself shrinks the mirror. Close it before arming the mode; the parent's
+      // effect then measures the normal pane, not this settings UI. Disabling is local and immediate.
+      setDrawer(null);
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+    }
+    onFitModeChange?.(enabled);
   }
 
   // The phone-owned draft, restored from (and written through to) the per-pane draft store — the
@@ -828,7 +833,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               stepFontSize={stepFontSize}
               setRawTerminal={setRawTerminal}
               setTapToFocus={setTapToFocus}
-              onFitTerminal={() => void fitTerminal()}
+              fitMode={fitMode}
+              onFitModeChange={(enabled) => void changeFitMode(enabled)}
               fitDisabled={locked}
             />
           </ComposerDock>

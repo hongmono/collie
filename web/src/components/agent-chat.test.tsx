@@ -5,6 +5,7 @@ import { http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider, useParams } from "react-router";
 
 import { __resetConnectionHealth } from "@/lib/connection-health";
+import { setTerminalFitMode } from "@/lib/terminal-fit-mode";
 
 // Mock the race guard at AgentChat's seam so the frozen-revision tests can observe exactly what
 // `detectedRevision` the tap handler passes (the guard's own behaviour is covered in
@@ -80,6 +81,46 @@ describe("AgentChat — reply flow", () => {
 
     expect(await screen.findByText("agent busy")).toBeInTheDocument();
     expect(box).toHaveValue("retry this"); // not cleared on failure
+  });
+});
+
+describe("AgentChat — fit panes as opened", () => {
+  it("fits an opened pane once when the browser-session mode is armed", async () => {
+    const grids: Array<{ cols: number; rows: number }> = [];
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, async ({ request }) => {
+        grids.push((await request.json()) as { cols: number; rows: number });
+        return HttpResponse.json({ ok: true, ...grids.at(-1)! });
+      }),
+    );
+    const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
+    const height = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
+    setTerminalFitMode(undefined, true);
+
+    renderChat();
+
+    await waitFor(() => expect(grids).toHaveLength(1));
+    expect(grids[0]!.cols).toBeGreaterThan(0);
+    expect(grids[0]!.rows).toBeGreaterThan(0);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(grids).toHaveLength(1);
+    width.mockRestore();
+    height.mockRestore();
+  });
+
+  it("does not fit from a read-only device even when the mode was armed", async () => {
+    let calls = 0;
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, () => {
+        calls += 1;
+        return HttpResponse.json({ ok: true, cols: 50, rows: 30 });
+      }),
+    );
+    setTerminalFitMode(undefined, true);
+    renderChat({ device: { enforced: true, device: "spare-phone", authorized: false } });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls).toBe(0);
   });
 });
 

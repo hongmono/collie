@@ -11,6 +11,12 @@ import { isConnecting } from "@/lib/connection";
 import { setStatus } from "@/lib/status";
 import { resizeTerminal } from "@/lib/api";
 import { measureTerminalGrid } from "@/lib/terminal-grid";
+import {
+  markTerminalPaneFitted,
+  setTerminalFitMode,
+  terminalFitModeEnabled,
+  terminalPaneWasFitted,
+} from "@/lib/terminal-fit-mode";
 import { ChatMessageList, type ChatMessageListHandle } from "@/components/ui/chat/chat-message-list";
 import { BottomSheet } from "@/components/ui/sheet";
 import { AppHeader } from "@/components/app-header";
@@ -132,6 +138,8 @@ export function AgentChat({
   const closeDrawer = () => setDrawer(null);
   const listRef = useRef<ChatMessageListHandle>(null);
   const composerRef = useRef<ComposerHandle>(null);
+  const [fitMode, setFitModeState] = useState(() => terminalFitModeEnabled(session));
+  const fitAttemptRef = useRef<string | null>(null);
 
   const gone = !agent;
 
@@ -591,21 +599,52 @@ export function AgentChat({
     composerRef.current?.focusInput();
   }
 
-  const fitTerminal = useCallback(async () => {
+  const fitTerminal = useCallback(async (): Promise<boolean> => {
     const scrollport = listRef.current?.getScrollElement();
-    const grid = scrollport ? measureTerminalGrid(scrollport) : null;
+    const grid = scrollport ? measureTerminalGrid(scrollport, prefs.fontSize) : null;
     if (!grid) {
       setStatus("Could not measure the terminal viewport", "error");
-      return;
+      return false;
     }
     try {
       await resizeTerminal(paneId, grid, session);
       setStatus(`Terminal resized to ${grid.cols}×${grid.rows}`, "success");
       revalidator.revalidate();
+      return true;
     } catch (err) {
       setStatus((err as Error).message || "Terminal resize failed", "error");
+      return false;
     }
-  }, [paneId, session, revalidator]);
+  }, [paneId, session, prefs.fontSize, revalidator]);
+
+  const changeFitMode = useCallback(
+    (enabled: boolean) => {
+      setTerminalFitMode(session, enabled);
+      fitAttemptRef.current = null;
+      setFitModeState(enabled);
+    },
+    [session],
+  );
+
+  useEffect(() => {
+    if (!fitMode || readOnly || gone || terminalPaneWasFitted(session, paneId)) return;
+    if (fitAttemptRef.current === paneId) return;
+    fitAttemptRef.current = paneId;
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        void fitTerminal().then((applied) => {
+          if (applied) markTerminalPaneFitted(session, paneId);
+          else if (!cancelled) fitAttemptRef.current = null;
+        });
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [fitMode, readOnly, gone, session, paneId, fitTerminal]);
 
   return (
     <div className="flex min-h-0 w-full min-w-0 max-w-[100dvw] flex-1 flex-col overflow-x-hidden">
@@ -892,7 +931,8 @@ export function AgentChat({
             stepFontSize={stepFontSize}
             setRawTerminal={setRawTerminal}
             setTapToFocus={setTapToFocus}
-            onFitTerminal={fitTerminal}
+            fitMode={fitMode}
+            onFitModeChange={changeFitMode}
             onSent={onSent}
           />
         </div>

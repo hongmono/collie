@@ -4,10 +4,20 @@ export interface TerminalGrid {
 }
 
 /** Convert the visible mirror scrollport into terminal cells at its actual rendered font metrics. */
-export function measureTerminalGrid(scrollport: HTMLElement): TerminalGrid | null {
+export function measureTerminalGrid(scrollport: HTMLElement, fallbackFontSize = 11): TerminalGrid | null {
   const pre = scrollport.querySelector<HTMLElement>("[data-terminal-output]");
-  if (!pre) return null;
-  const preStyle = getComputedStyle(pre);
+  // A brand-new shell can have no raw block (and therefore no <pre>) yet. Build the same monospace
+  // metric source temporarily so mobile mode can size an empty pane before its first output.
+  const metricSource = pre ?? document.createElement("span");
+  if (!pre) {
+    metricSource.className = "font-mono";
+    metricSource.style.fontSize = `${fallbackFontSize}px`;
+    metricSource.style.lineHeight = "1.25";
+    metricSource.style.position = "absolute";
+    metricSource.style.visibility = "hidden";
+    document.body.appendChild(metricSource);
+  }
+  const preStyle = getComputedStyle(metricSource);
   const portStyle = getComputedStyle(scrollport);
 
   // Measure a run rather than one glyph so sub-pixel rounding does not cost/gain a whole column.
@@ -29,9 +39,18 @@ export function measureTerminalGrid(scrollport: HTMLElement): TerminalGrid | nul
   document.body.appendChild(probe);
   const measured = probe.getBoundingClientRect().width / 10;
   probe.remove();
+  if (!pre) metricSource.remove();
 
   const fontSize = Number.parseFloat(preStyle.fontSize);
-  const lineHeight = Number.parseFloat(preStyle.lineHeight) || fontSize * 1.25;
+  const rawLineHeight = Number.parseFloat(preStyle.lineHeight);
+  // Browsers normally resolve computed line-height to px, while jsdom and some older WebViews can
+  // preserve the unitless multiplier. Distinguish the two so `1.25` never becomes 1.25 pixels.
+  const lineHeight =
+    rawLineHeight > 0
+      ? rawLineHeight < fontSize * 0.5
+        ? rawLineHeight * fontSize
+        : rawLineHeight
+      : fontSize * 1.25;
   // A hidden measurement can be zero in an old WebView while the page is backgrounding. The
   // monospace fallback is approximate but still preferable to firing an invalid 0-column resize.
   const cellWidth = measured > 0 ? measured : fontSize * 0.6;

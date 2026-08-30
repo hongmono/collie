@@ -19,7 +19,10 @@ describe("measureTerminalGrid", () => {
     port.remove();
   });
 
-  it("refuses to guess when no terminal output is rendered", () => {
-    expect(measureTerminalGrid(document.createElement("div"))).toBeNull();
+  it("still measures a new empty pane from the configured monospace font size", () => {
+    const port = document.createElement("div");
+    Object.defineProperty(port, "clientWidth", { value: 120 });
+    Object.defineProperty(port, "clientHeight", { value: 100 });
+    expect(measureTerminalGrid(port, 10)).toEqual({ cols: 20, rows: 8 });
   });
 });

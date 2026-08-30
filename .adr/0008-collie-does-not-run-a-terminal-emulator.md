@@ -112,11 +112,12 @@ the rows Herdr already rendered, and the client contract stays `StyledLine[]`.**
 - **A cell-grid wire protocol is refused even inside a hypothetical emulator.** The phone shows ~50 of
   a ~200-column pane, so a column-faithful grid reopens the pan-vs-wrap question 0.21.0 settled toward
   wrap.
-- **One-shot manual PTY fitting is allowed as the sole `terminal session control` exception.** It must
-  be initiated by an authorised user, target only the open pane, derive `cols/rows` from the rendered
-  mirror, omit `--takeover`, send `terminal.release` immediately, and never run from resize observers,
-  polling, keyboard changes, or reconnects. The UI must say that an attached desktop client can set
-  the shared PTY back to its own size.
+- **User-armed PTY fitting is allowed as the sole `terminal session control` exception.** An
+  authorised user explicitly arms it for one browser session; Collie then targets each pane at most
+  once as that user opens it. Every application derives `cols/rows` from the rendered mirror, omits
+  `--takeover`, and sends `terminal.release` immediately. It never runs from resize observers,
+  polling, keyboard changes, or reconnects, and never touches a pane the user did not open. The UI
+  must say that an attached desktop client can set the shared PTY back to its own size.
 
 ## Consequences
 
@@ -129,9 +130,10 @@ the rows Herdr already rendered, and the client contract stays `StyledLine[]`.**
   closed by inference, and this decision declines to close it by re-rendering.
 - **The fixture corpus stays deliberately coupled to `pane.read` output.** That coupling is now a
   decision rather than an accident, and anything that would break it inherits the cost of re-capturing.
-- **Manual Fit can reflow the running TUI.** In a headless session that is the requested outcome; if a
-  desktop Herdr client is attached, its geometry remains authoritative and may immediately replace
-  the phone's one-shot size. Collie never arbitrates or retries.
+- **Fit mode can reflow a TUI when the user opens its pane.** In a headless session that is the
+  requested outcome; if a desktop Herdr client is attached, its geometry remains authoritative and
+  may immediately replace the phone's one-shot size. Collie records the attempt and never arbitrates
+  or retries it during that browser session.
 - **Herdr's `[theme]` and its own UI stay irrelevant to what Collie draws** — unchanged by this, but
   worth restating, since "use a real emulator" is sometimes proposed as the way to match the desktop's
   colours. It would not; see [ADR 0002](./0002-invert-the-light-terminal-mirror.md).
