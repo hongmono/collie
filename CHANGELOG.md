@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.40.1] - 2026-08-30
+
+### Fixed
+
+- PTY fitting finds Herdr when Collie's supervised service runs with a minimal PATH (ff984d2)
+
 ## [0.40.0] - 2026-08-30
 
 ### Added
