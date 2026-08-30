@@ -6,6 +6,12 @@ All notable changes to Collie are recorded here. The format follows
 `version` in `herdr-plugin.toml`, `package.json`, and `web/package.json` (enforced by
 `scripts/check-version.sh`). See [`CLAUDE.md`](./CLAUDE.md) → *Versioning* for the bump policy.
 
+## [0.37.1] - 2026-08-30
+
+### Fixed
+
+- Codex completion rules stay on one clipped row instead of wrapping into extra separators (609dd7f)
+
 ## [0.37.0] - 2026-08-29
 
 ### Added
