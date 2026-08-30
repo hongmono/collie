@@ -886,6 +886,32 @@ test_bun_resolution() {
   assert_eq "$(cut -d'|' -f1 "$calls")" "${CASE_DIR}/alt/bin/bun"
 }
 
+# launchd starts the bridge with a system PATH that cannot see the usual ~/.local/bin Herdr install.
+# The wrapper must resolve that absolute path itself and pass it to the Bun bridge process.
+test_herdr_resolution_reaches_bridge() {
+  setup_case herdr-resolution
+  ln -s "$(command -v dirname)" "${BIN_DIR}/dirname"
+  mkdir -p "${HOME_DIR}/.bun/bin" "${HOME_DIR}/.local/bin"
+  local calls="${CASE_DIR}/bridge.calls"
+  cat > "${HOME_DIR}/.local/bin/herdr" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  cat > "${HOME_DIR}/.bun/bin/bun" <<EOF
+#!/bin/sh
+printf '%s|%s\n' "\${COLLIE_HERDR_BIN:-}" "\$*" > "$calls"
+exit 0
+EOF
+  chmod +x "${HOME_DIR}/.local/bin/herdr" "${HOME_DIR}/.bun/bin/bun"
+
+  env -u BUN_INSTALL -u COLLIE_HERDR_BIN \
+    HOME="$HOME_DIR" HERDR_PLUGIN_CONFIG_DIR="$CONFIG_DIR" PATH="$BIN_DIR" \
+    /bin/bash "$CTL" _exec-bridge
+
+  assert_eq "$(cut -d'|' -f1 "$calls")" "${HOME_DIR}/.local/bin/herdr"
+  assert_contains "$(cut -d'|' -f2- "$calls")" "bridge/index.ts"
+}
+
 # `command -v` reports a function or alias as a BARE word, and the plugin .env is sourced before we
 # resolve — so a `bun()` defined there yields dirname `.`, and prepending that would hand every later
 # `git` / `systemctl` / `tailscale` a cwd-relative lookup. Only absolute paths reach PATH.
@@ -1466,6 +1492,7 @@ test_qr_subcommand
 test_url_verb_honors_public_url
 test_launchd_bootstrap_retries
 test_bun_resolution
+test_herdr_resolution_reaches_bridge
 test_non_absolute_bun_never_reaches_path
 test_missing_bun_still_reports
 test_update_advances_a_herdr_managed_checkout

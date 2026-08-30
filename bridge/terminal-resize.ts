@@ -53,6 +53,7 @@ export async function resizeTerminal(
   paneId: string,
   grid: TerminalGrid,
   spawn: TerminalControlSpawn = realSpawn,
+  herdrBin = process.env.COLLIE_HERDR_BIN?.trim() || "herdr",
 ): Promise<void> {
   // HERDR_SOCKET_PATH selects the exact session socket already resolved by SessionRegistry. Drop
   // HERDR_ENV so a bridge launched from inside Herdr is not rejected as a nested interactive app;
@@ -61,7 +62,7 @@ export async function resizeTerminal(
   delete env.HERDR_ENV;
   const proc = spawn(
     [
-      "herdr",
+      herdrBin,
       "terminal",
       "session",
       "control",

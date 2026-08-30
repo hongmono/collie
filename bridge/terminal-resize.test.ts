@@ -71,4 +71,28 @@ describe("resizeTerminal", () => {
       resizeTerminal("/tmp/herdr.sock", "w1:p1", { cols: 40, rows: 20 }, spawn),
     ).rejects.toThrow("controller refused");
   });
+
+  test("uses the service-resolved Herdr executable", async () => {
+    let argv: string[] = [];
+    const spawn: TerminalControlSpawn = (nextArgv) => {
+      argv = nextArgv;
+      return {
+        stdin: { write: (value) => value.length, end() {} },
+        stdout: stream(""),
+        stderr: stream(""),
+        exited: Promise.resolve(0),
+        kill() {},
+      };
+    };
+
+    await resizeTerminal(
+      "/tmp/herdr.sock",
+      "w1:p1",
+      { cols: 40, rows: 20 },
+      spawn,
+      "/home/operator/.local/bin/herdr",
+    );
+
+    expect(argv[0]).toBe("/home/operator/.local/bin/herdr");
+  });
 });

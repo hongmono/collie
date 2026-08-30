@@ -184,6 +184,37 @@ case "$BUN" in
     esac
     ;;
 esac
+
+# Resolve Herdr separately from PATH for the bridge's terminal-size control client. Supervised
+# services do not inherit a login shell: launchd uses /usr/bin:/bin:/usr/sbin:/sbin, while the
+# operator's Herdr commonly lives in ~/.local/bin. Socket RPCs never needed the executable, so this
+# only became observable when Display gained PTY fitting. Preserve an explicit absolute override,
+# then use PATH and the conventional install locations.
+resolve_herdr() {
+  local candidate
+  if [ -n "${COLLIE_HERDR_BIN:-}" ] && [ -x "$COLLIE_HERDR_BIN" ]; then
+    printf '%s' "$COLLIE_HERDR_BIN"
+    return 0
+  fi
+  if candidate="$(command -v herdr 2>/dev/null)"; then
+    case "$candidate" in
+      /*) printf '%s' "$candidate"; return 0 ;;
+    esac
+  fi
+  for candidate in \
+    "${HOME}/.local/bin/herdr" \
+    "${HOME}/.cargo/bin/herdr" \
+    /usr/local/bin/herdr \
+    /opt/homebrew/bin/herdr \
+    /usr/bin/herdr; do
+    if [ -x "$candidate" ]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 0
+}
+HERDR_BIN="$(resolve_herdr)"
 WEB_DIST="${PLUGIN_ROOT}/web/dist/index.html"
 
 have_systemd() { command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; }
@@ -493,6 +524,13 @@ EOF
   fi
   cat >> "$UNIT_FILE" <<EOF
 EnvironmentFile=-${CONFIG_DIR}/.env
+EOF
+  # Keep the path resolved by this launcher authoritative over an obsolete/broken .env override.
+  # This also gives the directly-executed systemd bridge the same absolute path as launchd's wrapper.
+  if [ -n "$HERDR_BIN" ]; then
+    echo "Environment=COLLIE_HERDR_BIN=${HERDR_BIN}" >> "$UNIT_FILE"
+  fi
+  cat >> "$UNIT_FILE" <<EOF
 
 [Install]
 WantedBy=default.target
@@ -569,6 +607,7 @@ cmd_exec_bridge() {
   export COLLIE_PORT="$PORT"
   export HERDR_SOCKET_PATH="$SOCKET"
   export HERDR_PLUGIN_CONFIG_DIR="$CONFIG_DIR"
+  if [ -n "$HERDR_BIN" ]; then export COLLIE_HERDR_BIN="$HERDR_BIN"; fi
   exec "$BUN" run "${PLUGIN_ROOT}/bridge/index.ts"
 }
 
@@ -582,6 +621,7 @@ start_unsupervised() {
   export_bridge_env
   discover_tailscale_hosts
   HERDR_SOCKET_PATH="$SOCKET" COLLIE_PORT="$PORT" HERDR_PLUGIN_CONFIG_DIR="$CONFIG_DIR" \
+    COLLIE_HERDR_BIN="$HERDR_BIN" \
     nohup "$BUN" run "${PLUGIN_ROOT}/bridge/index.ts" >>"${CONFIG_DIR}/collie.log" 2>&1 &
   echo $! > "${CONFIG_DIR}/collie.pid"
   echo "bridge started (pid $(cat "${CONFIG_DIR}/collie.pid"), unsupervised)"
