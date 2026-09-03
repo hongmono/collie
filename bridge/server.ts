@@ -4,6 +4,11 @@ import { extname, join, normalize, sep } from "node:path";
 import type { JsonObject, JsonValue } from "./json.ts";
 import type { ActivityLedger } from "./activity.ts";
 import { type AuditDetail, type AuditEntry, AuditLog } from "./audit.ts";
+import {
+  artifactFile,
+  artifactForWire,
+  listArtifacts,
+} from "./artifacts.ts";
 import { isLoopbackBindHost, type Config } from "./config.ts";
 import { apiError, type ApiErrorBody, type ApiErrorDetail, type ErrorCode } from "./error-codes.ts";
 import {
@@ -1013,6 +1018,33 @@ export function startServer(opts: {
       if (sessionRouted) return sessionRouted;
 
       // ── Misc API ─────────────────────────────────────────────────────────
+      if (pathname === "/api/artifacts" && req.method === "GET") {
+        const denied = guard(req, cfg, "read", pairing);
+        if (denied) return denied;
+        return json(
+          { artifacts: listArtifacts(cfg.stateDir).map(artifactForWire) },
+          req.headers.get("accept-encoding"),
+        );
+      }
+      const artifactMatch = pathname.match(/^\/api\/artifacts\/(art_[a-f0-9-]{36})\/content$/u);
+      if (artifactMatch && req.method === "GET") {
+        const denied = guard(req, cfg, "read", pairing);
+        if (denied) return denied;
+        const found = artifactFile(cfg.stateDir, artifactMatch[1]!);
+        if (!found) return text("artifact not found", 404);
+        const headers = new Headers({
+          "content-type": found.record.mime,
+          "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(found.record.filename)}`,
+          "cache-control": "private, no-cache",
+        });
+        if (found.record.mime.startsWith("text/html")) {
+          headers.set(
+            "content-security-policy",
+            "sandbox allow-scripts; default-src 'self' data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' blob:",
+          );
+        }
+        return secure(new Response(Bun.file(found.path), { headers }));
+      }
       if (pathname === "/api/config") {
         // Read-level, like the other non-terminal endpoints. Nothing Collie puts here is a
         // credential — the VAPID public key is handed to every browser by design — but the payload

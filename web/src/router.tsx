@@ -7,8 +7,10 @@ import { DetailRoute } from "@/routes/detail";
 import { HistoryRoute } from "@/routes/history";
 import { SettingsRoute } from "@/routes/settings";
 import { PackRoute } from "@/routes/pack";
+import { ArtifactsRoute } from "@/routes/artifacts";
 import {
   devicesLoader,
+  artifactsLoader,
   historyLoader,
   packLoader,
   rootLoader,
@@ -48,6 +50,7 @@ export const router = createBrowserRouter([
       // Settings carries the paired-device registry, so it gets its own loader — a revoke or a pair
       // is then the app's standard mutation shape (api call → revalidate), with no second data path.
       { path: "settings", loader: devicesLoader, element: <SettingsRoute /> },
+      { path: "artifacts", loader: artifactsLoader, element: <ArtifactsRoute /> },
       // The pack census, likewise on its own loader — and deliberately ON the poll loop: the payload
       // is one small object per machine, and the whole point of the page is that a member going
       // quiet shows up here without the operator reloading. (History opts out; this one wants in.)

@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { Settings } from "lucide-react";
+import { Images, Settings } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import { isConnecting } from "@/lib/connection";
@@ -21,7 +21,7 @@ import { useLocale } from "@/hooks/use-locale";
 import { useMuxLogoUrl, useMuxName } from "@/lib/mux-capability";
 import { useConnectionLost, useConnectionTrouble } from "@/hooks/use-connection-lost";
 import { useLoadingStalled } from "@/hooks/use-loading-stalled";
-import { settingsPath } from "@/lib/nav";
+import { artifactsPath, settingsPath } from "@/lib/nav";
 import { CollieHome } from "@/components/collie-home";
 import { AlphaBar } from "@/components/alpha-bar";
 import { Collapse } from "@/components/ui/collapse";
@@ -490,6 +490,20 @@ export function SettingsGear({ scope }: { scope?: Scope }) {
       className="grid size-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"
     >
       <Settings className="size-5" />
+    </button>
+  );
+}
+
+export function ArtifactsButton({ scope }: { scope?: Scope }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(artifactsPath(scope))}
+      aria-label="Artifacts"
+      className="grid size-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <Images className="size-5" />
     </button>
   );
 }

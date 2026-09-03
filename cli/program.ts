@@ -1,6 +1,7 @@
 import { Command as Program, CommanderError } from "commander";
 
 import { type BeaconEmitDeps, runBeaconEmit } from "./beacon.ts";
+import { cmdArtifact } from "./artifact.ts";
 import { cmdBuild } from "./build.ts";
 import { collieVersion, loadContext } from "./context.ts";
 import {
@@ -206,6 +207,10 @@ function hooksDeps(io: Io): HooksDeps {
   return { ctx: loadContext(io.err), io, files: realFiles, fs: realLinkFs };
 }
 
+function artifactDeps(io: Io) {
+  return { ctx: loadContext(io.err), io };
+}
+
 /**
  * `stt`: the pairing set (context + filesystem — `stt.json` lives beside the pairing files, under the
  * state dir the bridge resolves), plus `exec` to locate the operator's `codex` binary and the two
@@ -398,6 +403,11 @@ export const COMMANDS: readonly Command[] = [
       },
     ],
     run: (args, s) => cmdHooks(hooksDeps(s.io), args),
+  },
+  {
+    name: "artifact",
+    summary: "publish agent-created previews, reports and downloads to Collie",
+    run: (args, s) => cmdArtifact(artifactDeps(s.io), args),
   },
   {
     name: "beacon",

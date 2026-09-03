@@ -15,6 +15,7 @@
 
 import {
   fetchDevices,
+  fetchArtifacts,
   fetchHistory,
   fetchPack,
   fetchPane,
@@ -58,7 +59,23 @@ import type {
   TranscriptEntry,
   UpdateInfo,
   WorkspaceView,
+  ArtifactRecord,
 } from "@/lib/types";
+
+export interface ArtifactsData {
+  artifacts: ArtifactRecord[];
+  error: boolean;
+}
+
+export async function artifactsLoader({ request }: { request?: Request } = {}): Promise<ArtifactsData> {
+  try {
+    const response = await fetchArtifacts(request?.signal);
+    return { artifacts: response.artifacts, error: false };
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    return { artifacts: [], error: true };
+  }
+}
 
 // A superseded revalidation is aborted via the loader's request.signal; that surfaces as an
 // AbortError we must RETHROW so React Router discards the stale run — swallowing it into the

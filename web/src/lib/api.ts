@@ -24,6 +24,7 @@ import type {
   UploadResponse,
   WorktreeListResponse,
   WorktreeOpenResponse,
+  ArtifactsResponse,
 } from "./types";
 
 export type { NotifyPrefs, UpdateInfo };
@@ -845,4 +846,8 @@ export function transcribeAudio(audio: Blob, signal?: AbortSignal): Promise<SttR
       };
     })().finally(endLongUpload),
   );
+}
+
+export function fetchArtifacts(signal?: AbortSignal): Promise<ArtifactsResponse> {
+  return doReq<ArtifactsResponse>("/api/artifacts", { signal });
 }

@@ -36,6 +36,10 @@ export function settingsPath(scope?: Scope): string {
   return `/settings${scopeSearch(scope)}`;
 }
 
+export function artifactsPath(scope?: Scope): string {
+  return `/artifacts${scopeSearch(scope)}`;
+}
+
 /**
  * The pack overview — the read-only census of every machine in the pack. Carries the scope like the
  * others so "back" returns you to the machine you were looking at, not to the lead.

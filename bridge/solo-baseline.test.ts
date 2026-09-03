@@ -532,10 +532,11 @@ describe("solo zero-tax — routes", () => {
       "/",
       // `focus` is the pane action that moves the OPERATOR's own terminal, and it is named here for
       // the reason every other one is: a route arrives on purpose or it does not arrive.
-      "/^\\/api\\/pane\\/([^/]+)(?:\\/(reply|keys|upload|close|rename|history|focus))?$/",
+      "/^\\/api\\/pane\\/([^/]+)(?:\\/(reply|keys|upload|close|rename|resize|history|focus))?$/",
       "/^\\/api\\/tab\\/([^/]+)\\/(rename|close)$/",
       "/^\\/api\\/workspace\\/([^/]+)\\/worktree(?:\\/(open))?$/",
       "/^\\/api\\/workspace\\/([^/]+)\\/worktrees$/",
+      "/api/artifacts",
       "/api/config",
       // Device pairing (bridge/pairing.ts) — a SOLO feature that legitimately extends this list.
       // It is named here, not exempted: the guard's job is that a route arrives on purpose.
@@ -730,6 +731,7 @@ describe("solo zero-tax — config", () => {
 /** Every `<stateDir>/…` path any bridge module names. `uploads` is a directory, the rest are files. */
 const STATE_DIR_ENTRIES = [
   "activity.json",
+  "artifacts",
   "audit.log",
   // Agent beacons (M11/01) — a directory, and one no bridge module ever writes: the bridge only ever
   // READS it, and the emitter that fills it is a CLI verb the operator installs a hook for. An

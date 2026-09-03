@@ -13,8 +13,8 @@ export interface AgentView {
   workspaceNumber: number;
   tabId: string;
   agent: string;
-  status: AgentStatus;
   cwd: string;
+  status: AgentStatus;
   focused: boolean;
   /** "agent" for an agent-bearing pane, "shell" for a bare shell. Absent = "agent". */
   kind?: "agent" | "shell";
@@ -771,3 +771,16 @@ export type WorktreeOpenResponse =
   | { ok: true; pane: CreatedPane; alreadyOpen: boolean }
   | { ok: false; error: string; code?: ApiErrorCode; detail?: ApiErrorDetail };
 
+export interface ArtifactRecord {
+  id: string;
+  title: string;
+  filename: string;
+  mime: string;
+  size: number;
+  createdAt: string;
+  status: "hosted";
+}
+
+export interface ArtifactsResponse {
+  artifacts: ArtifactRecord[];
+}
