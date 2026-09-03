@@ -242,6 +242,55 @@ describe("chrome", () => {
     );
   });
 
+  it("recognises explicit blank lines inside a multiline draft", () => {
+    // Three newline bytes between the paragraphs paint two empty textarea rows. Before this case
+    // was accepted, the reply guard saw the empty composer in its pre-flight, typed the message,
+    // then failed to locate the now-multiline composer and withheld Enter.
+    const status = "  model x · /some/dir · Context 50% left";
+    const lines = splitLines(
+      parseAnsi(
+        [
+          "› first paragraph",
+          "  continues here",
+          "",
+          "",
+          "  second paragraph",
+          "",
+          status,
+        ].join("\n"),
+      ),
+    );
+
+    expect(locateComposer(lines)).not.toBeNull();
+    expect(codexAdapter.composerReady!(lines)).toBe(true);
+    expect(codexAdapter.extractInputDraft(lines)).toBe(
+      "first paragraph continues here second paragraph",
+    );
+    expect(codexAdapter.composerPrompt!(lines)).toBe(
+      ["› first paragraph", "  continues here", "", "", "  second paragraph"].join("\n"),
+    );
+  });
+
+  it("does not walk through an unbounded blank run to an old transcript echo", () => {
+    const status = "  model x · /some/dir · Context 50% left";
+    const lines = splitLines(
+      parseAnsi(
+        [
+          "› an earlier submitted message",
+          "",
+          "",
+          "",
+          "  a torn continuation row",
+          "",
+          status,
+        ].join("\n"),
+      ),
+    );
+
+    expect(locateComposer(lines)).toBeNull();
+    expect(codexAdapter.composerReady!(lines)).toBe(false);
+  });
+
   it("declines a draft taller than MAX_DRAFT_ROWS", () => {
     const cont = Array.from({ length: 100 }, (_, i) => `  word${i}`);
     const status = "  model x · /some/dir · Context 50% left";

@@ -409,6 +409,32 @@ describe("sendGuardedReply", () => {
     ]);
   });
 
+  it("submits a Codex reply whose explicit paragraph breaks paint blank composer rows", async () => {
+    const text = "first paragraph\n\n\nsecond paragraph";
+    const screen = [
+      "› first paragraph",
+      "",
+      "",
+      "  second paragraph",
+      "",
+      "  model x · /some/dir · Context 50% left",
+    ].join("\n");
+    const calls = harness(() => screen);
+
+    const out = await sendGuardedReply({
+      paneId: "w1:p1",
+      text,
+      agent: "codex",
+      ...instant,
+    });
+
+    expect(out).toEqual({ status: "sent" });
+    expect(calls).toEqual([
+      { text, submit: false },
+      { text: "", submit: true },
+    ]);
+  });
+
   it("stalls on a placeholder inconsistent with what we sent — no submit key", async () => {
     // `#N` is a session counter we cannot predict, so somebody else's leftover token looks exactly
     // like ours; the line count is the only thing tying it to THIS send. 9 lines were never typed.

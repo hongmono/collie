@@ -23,6 +23,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Fixed
+
+- Codex replies containing explicit blank paragraph rows are verified and submitted without weakening the fail-closed composer guard.
+
 ## [1.2.0] - 2026-09-02
 
 ### Added

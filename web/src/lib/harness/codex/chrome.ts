@@ -31,6 +31,14 @@ export interface ComposerBox {
 // Claude. A run deeper than this is not a composer (fail closed — locateComposer returns null).
 const MAX_DRAFT_ROWS = 100;
 
+// An explicit newline inside the textarea paints an empty row. Two consecutive empty rows are the
+// common Markdown paragraph break (three `\n` bytes), and were the exact shape that made a verified
+// Collie reply strand its text without Enter: the walk below treated the first interior blank as the
+// end of the composer. Keep the allowance deliberately small. There is no cursor in `pane.read`, so
+// an unbounded blank walk could cross from a torn status row into an old transcript `›` echo and
+// authorise typing while the real composer was absent.
+const MAX_INTERNAL_BLANK_ROWS = 2;
+
 // A continuation row is the composer's TWO-SPACE GUTTER followed by the draft's own text — and
 // that text may ITSELF begin with spaces. Type two spaces mid-sentence, or let a soft wrap land
 // inside a run of them, and Codex paints a four-space-indented row that is a perfectly healthy
@@ -75,14 +83,24 @@ export function locateComposer(lines: StyledLine[]): ComposerBox | null {
   if (statusRow < 0 || !isStatusRow(texts[statusRow]!, lines[statusRow])) return null;
 
   // One blank row separates the prompt/draft run from the status row (every capture); above the
-  // gap the run is CONTIGUOUS non-blank rows — wrapped-draft continuations under the `› ` prompt.
+  // gap the run is wrapped-draft continuations under the `› ` prompt, with a deliberately bounded
+  // allowance for explicit blank textarea rows.
   const top = skipBlanksUp(texts, statusRow - 1);
   if (top < 0) return null;
+  let blankRun = 0;
   for (let i = top; i >= 0 && top - i < MAX_DRAFT_ROWS; i--) {
     const t = texts[i]!;
     if (promptText(t) !== null) return { promptRow: i, statusRow };
-    // A blank or foreign-shaped row inside the run means this status row is not under a composer.
-    if (isBlank(t) || !CONTINUATION.test(t) || isStatusRow(t, lines[i])) return null;
+    // Empty rows may belong to an explicitly multiline draft. Bound the consecutive run because a
+    // pane read has no cursor evidence with which to distinguish arbitrary whitespace above a torn
+    // status row from textarea content.
+    if (isBlank(t)) {
+      if (++blankRun > MAX_INTERNAL_BLANK_ROWS) return null;
+      continue;
+    }
+    blankRun = 0;
+    // A foreign-shaped row inside the run means this status row is not under a composer.
+    if (!CONTINUATION.test(t) || isStatusRow(t, lines[i])) return null;
   }
   return null;
 }
