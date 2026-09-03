@@ -23,6 +23,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Changed
+
+- Dashboard, space, settings, Pack, shared headers, and status overlays now use the full viewport width.
+
 ## [1.2.0-1] - 2026-09-03
 
 ### Added

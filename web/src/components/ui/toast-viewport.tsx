@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
  * toast may be missed during one, and an error that actually persists is still in the channel and
  * still showing when the sheet closes.
  */
-const SHARED = "pointer-events-none z-40 mx-auto w-full max-w-screen-sm px-4";
+const SHARED = "pointer-events-none z-40 w-full px-4";
 
 export interface ToastViewportProps {
   /**

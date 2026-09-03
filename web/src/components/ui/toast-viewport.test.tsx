@@ -24,7 +24,7 @@ describe("ToastViewport — where a transient event floats", () => {
 
   it("reproduces the bottom wrapper that already works", () => {
     // routes/home.tsx:121-123, generalised rather than redesigned: fixed to the bottom, column
-    // centred at the page's max width, on the page gutter, clearing the home indicator. The one
+    // stretched across the page, on the page gutter, clearing the home indicator. The one
     // deliberate change is z-30 -> z-40, the unclaimed rung above all chrome and below the sheets.
     render(
       <ToastViewport dock="bottom">
@@ -33,7 +33,8 @@ describe("ToastViewport — where a transient event floats", () => {
     );
     const wrapper = screen.getByText("Connected").parentElement;
     expect(wrapper).toHaveClass("fixed", "inset-x-0", "bottom-0", "z-40");
-    expect(wrapper).toHaveClass("mx-auto", "w-full", "max-w-screen-sm", "px-4");
+    expect(wrapper).toHaveClass("w-full", "px-4");
+    expect(wrapper).not.toHaveClass("mx-auto", "max-w-screen-sm");
     expect(wrapper?.className).toContain("safe-area-inset-bottom");
   });
 

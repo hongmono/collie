@@ -36,12 +36,6 @@ import type { Scope } from "@/lib/scope";
 interface HeaderClaim {
   /** Show the stacked identity beside the mark: the "Collie" brand line over the "on <mux>" line. */
   wordmark: boolean;
-  /** `column` = the header is as wide as the route's own `max-w-screen-sm` content column, which is
-   *  what the dashboard, space, Settings and Pack screens have always been; `full` = edge to edge,
-   *  which is what the pane and history screens have always been. Invisible on a phone, where the
-   *  viewport is narrower than the column; on a desktop it is the difference between a 640px rule
-   *  under the header and a 1280px one, so it is a real property of the route and not a default. */
-  width: "column" | "full";
   /** The route has taken the whole row (Settings, Pack, and either find bar). The shell then draws
    *  no mark, no caption and no slots — see `RouteHeader`. */
   override: boolean;
@@ -61,12 +55,11 @@ interface HeaderClaim {
 // it is deliberately benign rather than empty — the mark, the strip, the rule and the 60px floor are
 // all the shell's own, so a route that renders no <RouteHeader/> at all still gets a real header of
 // the right height. The one thing it cannot get wrong is the thing the operator was looking at.
-const UNCLAIMED: HeaderClaim = { wordmark: false, width: "full", override: false, hidden: false };
+const UNCLAIMED: HeaderClaim = { wordmark: false, override: false, hidden: false };
 
 function sameClaim(a: HeaderClaim, b: HeaderClaim): boolean {
   return (
     a.wordmark === b.wordmark &&
-    a.width === b.width &&
     a.override === b.override &&
     a.hidden === b.hidden
   );
@@ -187,9 +180,7 @@ export function AppHeaderHost({ bridge, error, children }: AppHeaderHostProps) {
           on the page and could not carry the separation alone; `border-rule` is 1.34:1 light / 2.06:1
           dark and can. COUPLED: CollieHome's `paper` is the knockout colour and must name this same
           background or every near-side bead grows a halo — app-header.test.tsx asserts the two agree.
-          `mx-auto w-full max-w-screen-sm` on the claim's say-so: the header used to live INSIDE each
-          route's own content column, so it inherited that column's width for free. Hoisted, it has to
-          state it — otherwise the dashboard's 640px rule would silently become the viewport's. */}
+          The shell spans the same full viewport as every route below it. */}
       <header
         className={cn(
           "sticky top-0 z-20 flex flex-col border-b bg-background [padding-top:env(safe-area-inset-top)]",
@@ -198,7 +189,6 @@ export function AppHeaderHost({ bridge, error, children }: AppHeaderHostProps) {
           // two regions left to cut apart, so the edge goes transparent; nothing moves by a pixel
           // when it comes back.
           claim.hidden ? "border-transparent" : "border-rule",
-          claim.width === "column" && "mx-auto w-full max-w-screen-sm",
         )}
       >
         {/* The row and the prerelease strip leave TOGETHER, and through `Collapse` — DESIGN.md §1's
@@ -380,10 +370,6 @@ interface RouteHeaderProps {
    *  inside a pane: the breadcrumb in `children` carries the context there, and the mark stands alone
    *  to save width. */
   wordmark?: boolean;
-  /** Whether this route's header is as wide as its `max-w-screen-sm` content column or edge to edge.
-   *  See `HeaderClaim.width`. Defaults to `full`, which is the plainer of the two. */
-  width?: "column" | "full";
-
   /** Route-specific center content — the pane's `space › tab` breadcrumb. Rendered in a `flex-1
    *  min-w-0` region so a long breadcrumb truncates instead of pushing the pill off the row. Empty on
    *  the dashboard/space, where the region is just the spacer that pushes the right cluster over. */
@@ -409,7 +395,7 @@ interface RouteHeaderProps {
 
 /**
  * A route's contribution to the one header. Renders NO chrome of its own: it portals its nodes into
- * the shell's hosts and states the four shape facts the shell has to draw (`HeaderClaim`).
+ * the shell's hosts and states the three shape facts the shell has to draw (`HeaderClaim`).
  *
  * WHY A PORTAL, and not a context the route writes its nodes into. The nodes are the point: the
  * pane's breadcrumb closes over `openSpace`, the find bar over `setFindQuery` and the match cursor.
@@ -428,14 +414,13 @@ interface RouteHeaderProps {
  *
  * TWO ROUTES DURING A TRANSITION. React commits the leaving route's teardown before the arriving
  * route's layout effects, so the ordinary sequence is release → claim and the arriving route wins.
- * `owner` in the shell makes the reverse order harmless too. And because the claim is four
+ * `owner` in the shell makes the reverse order harmless too. And because the claim is three
  * primitives, `setClaim` bails out when nothing actually changed, so a route re-rendering on every
  * poll does not re-render the header — which is the whole point of not remounting it.
  */
 export function RouteHeader({
   onHome,
   wordmark = false,
-  width = "full",
   children,
   rightLead,
   rightTrail,
@@ -455,9 +440,9 @@ export function RouteHeader({
   // effect, not a passive one: it lands in the same commit the portal's children do, before the
   // browser paints, so there is no frame in which the row's shape and its contents disagree.
   useLayoutEffect(() => {
-    claim(owner, { wordmark, width, override: overridden, hidden });
+    claim(owner, { wordmark, override: overridden, hidden });
     return () => release(owner);
-  }, [claim, release, owner, wordmark, width, overridden, hidden]);
+  }, [claim, release, owner, wordmark, overridden, hidden]);
 
   // The mark's tap. No deps: `onHome` is a new closure on every render and the shell reads this
   // through a ref at click time, so keeping it current costs one assignment and re-renders nothing.

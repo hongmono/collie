@@ -457,16 +457,14 @@ function HoistedRoute({ name, ...header }: { name: string } & ComponentProps<typ
 // every identity assertion below while the real app, whose six routes are six different components,
 // remounts on every hop. Verified: with one shared type these cases pass even with the header put
 // back inside the routes. With these three they do not.
-const DashRoute = () => (
-  <HoistedRoute name="dash" wordmark width="column" rightTrail={<SettingsGear />} />
-);
+const DashRoute = () => <HoistedRoute name="dash" wordmark rightTrail={<SettingsGear />} />;
 const PaneRoute = () => (
   <HoistedRoute name="pane" onHome={() => {}}>
     <span>webapp › main</span>
   </HoistedRoute>
 );
 const SettingsLikeRoute = () => (
-  <HoistedRoute name="settings" width="column" override={<button type="button">Back</button>} />
+  <HoistedRoute name="settings" override={<button type="button">Back</button>} />
 );
 
 function renderHoisted(initialEntry = "/") {
@@ -610,18 +608,14 @@ describe("the ONE header — hoisted above the outlet", () => {
     expect(screen.getByText("Collie")).toBeInTheDocument();
   });
 
-  it("carries the route's own width claim, so a hoisted header is not silently full-bleed", async () => {
-    // The header used to live INSIDE each route's content column and inherited its width for free:
-    // 640px on the dashboard, Settings and Pack, edge-to-edge in a pane and in history. Measured in
-    // a 1280px viewport before this change: `/` gave x=320 w=640, `/pane/…` gave x=0 w=1280. Hoisted,
-    // that width has to be STATED or the dashboard's rule silently becomes the viewport's.
+  it("keeps the shared header full-width across routes", async () => {
     const { container, go } = renderHoisted();
     const header = container.querySelector("header");
-    expect(header?.className).toContain("max-w-screen-sm");
+    expect(header?.className).not.toContain("max-w-screen-sm");
     await go("/pane");
     expect(header?.className).not.toContain("max-w-screen-sm");
     await go("/settings");
-    expect(header?.className).toContain("max-w-screen-sm");
+    expect(header?.className).not.toContain("max-w-screen-sm");
   });
 
   it("refuses to render a route header with no host above it", () => {
