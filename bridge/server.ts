@@ -8,7 +8,6 @@ import {
   artifactFile,
   artifactForWire,
   listArtifacts,
-  artifactSpace,
 } from "./artifacts.ts";
 import { isLoopbackBindHost, type Config } from "./config.ts";
 import { apiError, type ApiErrorBody, type ApiErrorDetail, type ErrorCode } from "./error-codes.ts";
@@ -697,11 +696,8 @@ export function startServer(opts: {
       const rt = await caller.resolve();
       if (rt instanceof Response) return rt;
       const spaceId = url.searchParams.get("space");
-      const spaces = rt.engine.current().workspaces.flatMap((space) =>
-        space.repoRoot ? [{ workspaceId: space.workspaceId, repoRoot: space.repoRoot }] : [],
-      );
       const records = listArtifacts(cfg.stateDir).filter(
-        (record) => spaceId === null || artifactSpace(record.cwd, spaces) === spaceId,
+        (record) => spaceId === null || record.spaceId === spaceId,
       );
       return json({ artifacts: records.map(artifactForWire) }, req.headers.get("accept-encoding"));
     }
@@ -1058,10 +1054,7 @@ export function startServer(opts: {
         const spaceId = url.searchParams.get("space");
         const artifactRuntime = await localRuntime(sessionName, null);
         if (artifactRuntime instanceof Response) return artifactRuntime;
-        const spaces = artifactRuntime.engine.current().workspaces.flatMap((space) =>
-          space.repoRoot ? [{ workspaceId: space.workspaceId, repoRoot: space.repoRoot }] : [],
-        );
-        const records = listArtifacts(cfg.stateDir).filter((record) => spaceId === null || artifactSpace(record.cwd, spaces) === spaceId);
+        const records = listArtifacts(cfg.stateDir).filter((record) => spaceId === null || record.spaceId === spaceId);
         return json(
           { artifacts: records.map(artifactForWire) },
           req.headers.get("accept-encoding"),

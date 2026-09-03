@@ -2,12 +2,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { createArtifact, listArtifacts } from "../bridge/artifacts.ts";
+import { HerdrClient } from "../bridge/mux/herdr/client.ts";
 import type { CliContext } from "./context.ts";
 import { EXIT, type Io } from "./io.ts";
 
 export interface ArtifactDeps {
   ctx: CliContext;
   io: Io;
+  currentSpace?: () => Promise<string | null>;
 }
 
 const POLICY = `When you create a user-facing artifact such as an HTML preview, diagram, image, long report, table, dataset, dashboard, or downloadable file, publish it by running:\n\ncollie artifact publish <path> --title "<descriptive title>"\n\nDecide this yourself; do not wait for the user to ask. Do not publish source files, secrets, temporary files, dependency trees, or ordinary short textual answers. After publishing, include the artifact title in your final response.`;
@@ -42,7 +44,7 @@ function setup(deps: ArtifactDeps): number {
   return EXIT.OK;
 }
 
-export function cmdArtifact(deps: ArtifactDeps, args: readonly string[]): number {
+export async function cmdArtifact(deps: ArtifactDeps, args: readonly string[]): Promise<number> {
   const [verb, ...rest] = args;
   if (verb === "setup" && rest.length === 0) return setup(deps);
   if (verb === "list" && rest.length === 0) {
@@ -57,7 +59,14 @@ export function cmdArtifact(deps: ArtifactDeps, args: readonly string[]): number
     title = rest[2]!;
   }
   try {
-    const record = createArtifact(deps.ctx.stateDir, resolve(source), title, process.cwd());
+    const currentSpace = deps.currentSpace ?? (async () => {
+      try {
+        return (await new HerdrClient(deps.ctx.socket).currentPane()).workspace_id;
+      } catch {
+        return null;
+      }
+    });
+    const record = createArtifact(deps.ctx.stateDir, resolve(source), title, process.cwd(), await currentSpace());
     deps.io.out(`artifact published: ${record.title}`);
     deps.io.out(`  ${record.id}`);
     return EXIT.OK;

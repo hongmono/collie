@@ -358,6 +358,12 @@ export class HerdrClient {
     return r.panes;
   }
 
+  /** The pane Herdr currently focuses, including its owning workspace id. */
+  async currentPane(): Promise<WirePane> {
+    const r = await this.request<{ pane: WirePane }>("pane.current");
+    return r.pane;
+  }
+
   /** All tabs across every workspace (`tab.list` with no filter returns the full set). */
   async listTabs(): Promise<WireTab[]> {
     const r = await this.request<{ tabs: WireTab[] }>("tab.list");

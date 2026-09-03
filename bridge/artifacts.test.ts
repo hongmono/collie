@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { artifactForWire, artifactMime, artifactSpace, type ArtifactRecord } from "./artifacts.ts";
+import { artifactForWire, artifactMime, type ArtifactRecord } from "./artifacts.ts";
 
 describe("artifacts", () => {
   test("classifies previews and safe unknown downloads", () => {
@@ -18,18 +18,19 @@ describe("artifacts", () => {
       size: 10,
       createdAt: "2026-09-03T00:00:00.000Z",
       cwd: "/secret/customer/project",
+      spaceId: "w1",
       status: "hosted",
     };
-    expect(artifactForWire(record)).not.toHaveProperty("cwd");
+    expect(artifactForWire(record)).toEqual({
+      id: record.id,
+      title: "Report",
+      filename: "report.html",
+      mime: "text/html; charset=utf-8",
+      size: 10,
+      createdAt: "2026-09-03T00:00:00.000Z",
+      spaceId: "w1",
+      status: "hosted",
+    });
   });
 
-  test("assigns a publish cwd to the most-specific containing Herdr space", () => {
-    const spaces = [
-      { workspaceId: "parent", repoRoot: "/work" },
-      { workspaceId: "project", repoRoot: "/work/project" },
-    ];
-    expect(artifactSpace("/work/project/reports", spaces)).toBe("project");
-    expect(artifactSpace("/work/project-two", spaces)).toBe("parent");
-    expect(artifactSpace("/tmp", spaces)).toBeNull();
-  });
 });

@@ -12,6 +12,7 @@ export interface ArtifactRecord {
   size: number;
   createdAt: string;
   cwd: string;
+  spaceId: string | null;
   status: "hosted";
 }
 
@@ -25,17 +26,10 @@ export function artifactForWire(record: ArtifactRecord): ArtifactWire {
     mime: record.mime,
     size: record.size,
     createdAt: record.createdAt,
+    spaceId: record.spaceId,
     status: record.status,
   };
   return wire;
-}
-
-/** Assign an artifact to the most-specific Herdr space whose repository contains its publish cwd. */
-export function artifactSpace(cwd: string, spaces: readonly { workspaceId: string; repoRoot: string }[]): string | null {
-  const roots = spaces
-    .filter((space) => cwd === space.repoRoot || cwd.startsWith(`${space.repoRoot}/`))
-    .toSorted((a, b) => b.repoRoot.length - a.repoRoot.length);
-  return roots[0]?.workspaceId ?? null;
 }
 
 const MIME = new Map<string, string>([
@@ -64,7 +58,7 @@ export function artifactMime(filename: string): string {
 export const artifactsRoot = (stateDir: string): string => join(stateDir, "artifacts");
 const recordPath = (stateDir: string, id: string): string => join(artifactsRoot(stateDir), id, "record.json");
 
-export function createArtifact(stateDir: string, source: string, title: string, cwd: string): ArtifactRecord {
+export function createArtifact(stateDir: string, source: string, title: string, cwd: string, spaceId: string | null = null): ArtifactRecord {
   const info = statSync(source);
   if (!info.isFile()) throw new Error("artifact source is not a regular file");
   if (info.size > ARTIFACT_MAX_BYTES) throw new Error("artifact is larger than 50 MB");
@@ -82,6 +76,7 @@ export function createArtifact(stateDir: string, source: string, title: string, 
     size: info.size,
     createdAt: new Date().toISOString(),
     cwd,
+    spaceId,
     status: "hosted",
   };
   writeArtifactRecord(stateDir, record);
@@ -102,10 +97,11 @@ function parseRecord(text: string): ArtifactRecord | null {
     if (!ID.test(value.id ?? "") || typeof value.title !== "string" || typeof value.filename !== "string") return null;
     if (basename(value.filename) !== value.filename || typeof value.mime !== "string") return null;
     if (typeof value.size !== "number" || typeof value.createdAt !== "string" || typeof value.cwd !== "string") return null;
+    if (value.spaceId !== undefined && value.spaceId !== null && typeof value.spaceId !== "string") return null;
     if (value.status !== "hosted") return null;
     // SAFETY: the required record fields and closed status vocabulary were checked immediately
     // above; optional strings are never trusted for filesystem resolution.
-    return value as ArtifactRecord;
+    return { ...value, spaceId: value.spaceId ?? null } as ArtifactRecord;
   } catch {
     return null;
   }

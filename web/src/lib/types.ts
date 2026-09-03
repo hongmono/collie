@@ -778,6 +778,7 @@ export interface ArtifactRecord {
   mime: string;
   size: number;
   createdAt: string;
+  spaceId: string | null;
   status: "hosted";
 }
 
