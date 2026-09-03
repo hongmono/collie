@@ -97,6 +97,19 @@ function versionParts(v: string) {
   };
 }
 
+// This fork keeps the upstream base visible and increments only the final numeric suffix:
+// `1.2.0-1`, `1.2.0-2`, then `1.3.0-1` after rebasing onto upstream 1.3.0. SemVer calls that
+// suffix a prerelease and would normally prefer the unsuffixed upstream tag. That is exactly the
+// wrong update for a downstream build: it would replace the custom code with upstream. A purely
+// numeric, positive tail is therefore Collie's explicit downstream track marker. Named tails such
+// as beta/rc retain the ordinary SemVer train rules below.
+const DOWNSTREAM_REVISION = /^[1-9]\d*$/;
+
+/** Whether `version` belongs to the downstream `X.Y.Z-N` release track. */
+export function isDownstreamRevisionVersion(version: string): boolean {
+  return DOWNSTREAM_REVISION.test(versionParts(version).prerelease ?? "");
+}
+
 const NUMERIC_IDENTIFIER = /^\d+$/;
 
 /**
@@ -195,6 +208,7 @@ export function followsTrain(installed: string, strictBest: string | null): bool
  * fallback — see {@link followsTrain} for the rule and why it is that way round.
  */
 export function latestUpdateInMajor(tags: string[], major: number, installed: string): string | null {
+  if (isDownstreamRevisionVersion(installed)) return latestDownstreamRevisionInMajor(tags, major);
   const strict = latestReleaseInMajor(tags, major);
   if (!followsTrain(installed, strict)) return strict;
   let best: string | null = null;
@@ -203,6 +217,43 @@ export function latestUpdateInMajor(tags: string[], major: number, installed: st
     if (parsed === null || parsed.triple[0] !== major) continue;
     const v = versionOfTag(parsed);
     if (best === null || compareSemver(v, best) > 0) best = v;
+  }
+  return best;
+}
+
+/** Highest downstream `vX.Y.Z-N` tag in `major`; strict upstream and named beta/rc tags are ignored. */
+export function latestDownstreamRevisionInMajor(tags: string[], major: number): string | null {
+  let best: string | null = null;
+  for (const tag of tags) {
+    const parsed = parsePrereleaseTag(tag);
+    if (
+      parsed === null ||
+      parsed.triple[0] !== major ||
+      !DOWNSTREAM_REVISION.test(parsed.prerelease ?? "")
+    ) {
+      continue;
+    }
+    const version = versionOfTag(parsed);
+    if (best === null || compareSemver(version, best) > 0) best = version;
+  }
+  return best;
+}
+
+/** The first higher major that publishes a downstream revision, for an explicit `update --major`. */
+export function latestDownstreamRevisionAboveMajor(tags: string[], major: number): string | null {
+  const parsed = tags.flatMap((tag) => {
+    const value = parsePrereleaseTag(tag);
+    return value !== null && value.triple[0] > major && DOWNSTREAM_REVISION.test(value.prerelease ?? "")
+      ? [value]
+      : [];
+  });
+  if (parsed.length === 0) return null;
+  const nextMajor = Math.min(...parsed.map((value) => value.triple[0]));
+  let best: string | null = null;
+  for (const value of parsed) {
+    if (value.triple[0] !== nextMajor) continue;
+    const version = versionOfTag(value);
+    if (best === null || compareSemver(version, best) > 0) best = version;
   }
   return best;
 }
@@ -519,7 +570,12 @@ export class UpdateMonitor {
     const major = majorOf(this.deps.current);
     this.latest =
       major === null ? latestReleaseTag(tags) : latestUpdateInMajor(tags, major, this.deps.current);
-    this.majorAvailable = major === null ? null : latestReleaseAboveMajor(tags, major);
+    this.majorAvailable =
+      major === null
+        ? null
+        : isDownstreamRevisionVersion(this.deps.current)
+          ? latestDownstreamRevisionAboveMajor(tags, major)
+          : latestReleaseAboveMajor(tags, major);
     this.checkedAt = this.deps.now();
 
     const { current, store } = this.deps;

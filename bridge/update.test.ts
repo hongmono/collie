@@ -6,6 +6,9 @@ import {
   followsTrain,
   githubReleaseUrl,
   isPrereleaseVersion,
+  isDownstreamRevisionVersion,
+  latestDownstreamRevisionAboveMajor,
+  latestDownstreamRevisionInMajor,
   latestUpdateInMajor,
   latestReleaseAboveMajor,
   latestReleaseInMajor,
@@ -83,6 +86,15 @@ describe("parsePrereleaseTag / isPrereleaseVersion", () => {
     expect(isPrereleaseVersion("0.32.0")).toBe(false);
     expect(isPrereleaseVersion("unknown")).toBe(false);
   });
+
+  it("recognises only a positive numeric tail as a downstream revision", () => {
+    expect(isDownstreamRevisionVersion("1.2.0-1")).toBe(true);
+    expect(isDownstreamRevisionVersion("1.2.0-12+abc1234")).toBe(true);
+    expect(isDownstreamRevisionVersion("1.2.0-0")).toBe(false);
+    expect(isDownstreamRevisionVersion("1.2.0-01")).toBe(false);
+    expect(isDownstreamRevisionVersion("1.2.0-beta.1")).toBe(false);
+    expect(isDownstreamRevisionVersion("1.2.0")).toBe(false);
+  });
 });
 
 describe("followsTrain / latestUpdateInMajor", () => {
@@ -117,6 +129,13 @@ describe("followsTrain / latestUpdateInMajor", () => {
     expect(latestUpdateInMajor(tags, 1, "1.0.0-beta.10")).toBe("1.0.0");
     // …and it never crosses out of its own major.
     expect(latestUpdateInMajor(["v0.32.0", "v2.0.0"], 1, "1.0.0-beta.1")).toBeNull();
+  });
+
+  it("keeps numeric downstream releases on their own track", () => {
+    const releases = ["v1.2.0", "v1.2.0-1", "v1.2.0-2", "v1.3.0", "v1.3.0-1", "v2.0.0", "v2.0.0-1"];
+    expect(latestUpdateInMajor(releases, 1, "1.2.0-1")).toBe("1.3.0-1");
+    expect(latestDownstreamRevisionInMajor(releases, 1)).toBe("1.3.0-1");
+    expect(latestDownstreamRevisionAboveMajor(releases, 1)).toBe("2.0.0-1");
   });
 });
 
@@ -325,6 +344,24 @@ describe("UpdateMonitor", () => {
     await monitor.checkRelease();
     expect(monitor.status()).toMatchObject({ latest: "1.0.0", releaseAvailable: false });
     expect(notified).toEqual([]);
+  });
+
+  it("a downstream install reports only downstream updates and higher downstream majors", async () => {
+    const { monitor, notified } = makeMonitor({
+      repo: "hongmono/collie",
+      current: "1.2.0-1",
+      fetchTags: async () =>
+        apiTags("v1.2.0", "v1.2.0-1", "v1.2.0-2", "v1.3.0", "v1.3.0-1", "v2.0.0", "v2.0.0-1"),
+    });
+    await monitor.checkRelease();
+    expect(monitor.status()).toMatchObject({
+      latest: "1.3.0-1",
+      latestUrl: "https://github.com/hongmono/collie/releases/tag/v1.3.0-1",
+      releaseAvailable: true,
+      majorAvailable: "2.0.0-1",
+      majorUrl: "https://github.com/hongmono/collie/releases/tag/v2.0.0-1",
+    });
+    expect(notified).toEqual(["1.3.0-1"]);
   });
 
   it("githubReleaseUrl reconstructs the vX.Y.Z tag page", () => {

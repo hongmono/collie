@@ -6,6 +6,7 @@ import {
   compareSemver,
   followsTrain,
   githubTagsUrl,
+  isDownstreamRevisionVersion,
   majorOf,
   MANIFEST_SCHEMA_VERSION,
   parsePrereleaseTag,
@@ -156,6 +157,13 @@ export function trainInMajor(tags: readonly ReleaseTag[], major: number): Releas
   return highestRelease(tags.filter((t) => t.major === major));
 }
 
+/** Highest `X.Y.Z-N` downstream release in this major; upstream releases and beta/rc stay outside. */
+export function downstreamRevisionInMajor(tags: readonly ReleaseTag[], major: number): ReleaseTag | null {
+  return highestRelease(
+    tags.filter((tag) => tag.major === major && /^[1-9]\d*$/.test(tag.prerelease ?? "")),
+  );
+}
+
 /**
  * The highest release of the NEXT major that has one — the target of `update --major`.
  *
@@ -169,6 +177,14 @@ export function nextMajorRelease(tags: readonly ReleaseTag[], major: number): Re
   if (above.length === 0) return null;
   const next = Math.min(...above.map((t) => t.major));
   return releaseInMajor(above, next);
+}
+
+/** The first higher major that has a downstream `X.Y.Z-N` release. */
+export function nextDownstreamRevisionMajor(tags: readonly ReleaseTag[], major: number): ReleaseTag | null {
+  const above = tags.filter((tag) => tag.major > major && /^[1-9]\d*$/.test(tag.prerelease ?? ""));
+  if (above.length === 0) return null;
+  const next = Math.min(...above.map((tag) => tag.major));
+  return highestRelease(above.filter((tag) => tag.major === next));
 }
 
 /**
@@ -204,7 +220,10 @@ export function planUpdate(a: {
   if (major === null || a.installed === null) {
     return { kind: "unknown-version", newest: highestRelease(strictOnly(a.tags)) };
   }
-  const higher = nextMajorRelease(a.tags, major);
+  const downstream = isDownstreamRevisionVersion(a.installed);
+  const higher = downstream
+    ? nextDownstreamRevisionMajor(a.tags, major)
+    : nextMajorRelease(a.tags, major);
   if (a.crossMajor) {
     return higher === null
       ? { kind: "no-higher-major", major }
@@ -215,7 +234,11 @@ export function planUpdate(a: {
   // strict releases only (unchanged, byte for byte). A prerelease install PREFERS strict releases as
   // well, and drops to its major's train only when no strict release there is newer than it.
   const strict = releaseInMajor(a.tags, major);
-  const best = followsTrain(a.installed, strict?.version ?? null) ? trainInMajor(a.tags, major) : strict;
+  const best = downstream
+    ? downstreamRevisionInMajor(a.tags, major)
+    : followsTrain(a.installed, strict?.version ?? null)
+      ? trainInMajor(a.tags, major)
+      : strict;
   if (best === null) return { kind: "no-release", major, higher };
   // Already there — by commit (the usual case) or by version (a rebuilt tag, a rolled-forward
   // manifest). Either answer means there is nothing in this major left to take.

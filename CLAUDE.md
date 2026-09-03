@@ -27,6 +27,11 @@ mark it superseded and write the next one.
 
 Collie is **SemVer**ed, and the version is **enforced**, so it never silently drifts.
 
+This downstream uses `UPSTREAM-N` releases: `1.2.0-1` is downstream revision 1 based on upstream
+1.2.0, the next local release is `1.2.0-2`, and a rebase onto upstream 1.3.0 resets the suffix to
+`1.3.0-1`. A purely numeric prerelease suffix is reserved for this track; update checks ignore
+unsuffixed upstream and named beta/rc tags while installed on it.
+
 **The version lives in three files that must always agree, plus a matching CHANGELOG entry:**
 `herdr-plugin.toml` (canonical — Herdr reads it) · `package.json` · `web/package.json` ·
 newest *numbered* `## [x.y.z]` heading in `CHANGELOG.md`. `## [Unreleased]` is not numbered and is

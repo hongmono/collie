@@ -23,6 +23,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Changed
+
+- Numeric `-N` releases now track downstream builds separately from upstream and beta tags.
+
 ## [1.3.0] - 2026-09-03
 
 ### Added

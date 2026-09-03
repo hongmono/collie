@@ -21,8 +21,10 @@ import { latestUpdateInMajor } from "../bridge/update.ts";
 import {
   cmdApplyUpdate,
   cmdUpdate,
+  downstreamRevisionInMajor,
   isManagedCheckout,
   majorVerdict,
+  nextDownstreamRevisionMajor,
   nextMajorRelease,
   parseApiTags,
   parseRemoteTags,
@@ -277,6 +279,26 @@ describe("planUpdate", () => {
     expect(out.kind === "advance" && out.crossesMajor).toBe(false);
   });
 
+  test("a numeric downstream install ignores upstream releases and follows only numeric revisions", () => {
+    const downstream = parseRemoteTags(
+      [
+        "a\trefs/tags/v1.2.0",
+        "b\trefs/tags/v1.2.0-1",
+        "c\trefs/tags/v1.2.0-2",
+        "d\trefs/tags/v1.3.0",
+        "e\trefs/tags/v1.3.0-1",
+        "f\trefs/tags/v2.0.0",
+        "g\trefs/tags/v2.0.0-1",
+      ].join("\n"),
+    );
+    expect(downstreamRevisionInMajor(downstream, 1)?.version).toBe("1.3.0-1");
+    expect(nextDownstreamRevisionMajor(downstream, 1)?.version).toBe("2.0.0-1");
+    const routine = planUpdate({ tags: downstream, installed: "1.2.0-1", head: "b", crossMajor: false });
+    expect(routine.kind === "advance" && routine.target.version).toBe("1.3.0-1");
+    const major = planUpdate({ tags: downstream, installed: "1.3.0-1", head: "e", crossMajor: true });
+    expect(major.kind === "advance" && major.target.version).toBe("2.0.0-1");
+  });
+
   test("banner and verb resolve the SAME target from the same inputs", () => {
     // The coupling ADR 0020 relies on: the verb can never land where the banner would not have
     // announced. Both read `bridge/update.ts` — one over ref names, one over parsed tags. The three
@@ -285,10 +307,11 @@ describe("planUpdate", () => {
       ["v0.32.0", "v1.0.0-beta.44", "v1.0.0-beta.45", "nightly"], // fallback: no strict 1.x
       ["v1.0.0-beta.45", "v1.0.0"], // supersede: beta.44 skips beta.45
       ["v0.32.0", "v1.0.0", "v1.1.0-rc.1"], // consent-ended: the rc is invisible
+      ["v1.2.0", "v1.2.0-1", "v1.2.0-2", "v1.3.0", "v1.3.0-1"], // downstream only
     ];
     for (const names of sets) {
       const tagList = parseRemoteTags(names.map((n, i) => `c${i}\trefs/tags/${n}`).join("\n"));
-      for (const installed of ["0.32.0", "1.0.0-beta.5", "1.0.0-beta.44", "1.0.0", "1.1.0-rc.1"]) {
+      for (const installed of ["0.32.0", "1.0.0-beta.5", "1.0.0-beta.44", "1.0.0", "1.1.0-rc.1", "1.2.0-1"]) {
         const major = Number(installed.split(".")[0]);
         const verb = planUpdate({ tags: tagList, installed, head: "nowhere", crossMajor: false });
         const banner = latestUpdateInMajor(names, major, installed);
