@@ -8,6 +8,7 @@ import {
   artifactFile,
   artifactForWire,
   listArtifacts,
+  artifactSpace,
 } from "./artifacts.ts";
 import { isLoopbackBindHost, type Config } from "./config.ts";
 import { apiError, type ApiErrorBody, type ApiErrorDetail, type ErrorCode } from "./error-codes.ts";
@@ -690,6 +691,39 @@ export function startServer(opts: {
   ): Promise<Response | null> => {
     const { pathname } = url;
 
+    if (pathname === "/api/artifacts" && req.method === "GET") {
+      const denied = caller.gate("read");
+      if (denied) return denied;
+      const rt = await caller.resolve();
+      if (rt instanceof Response) return rt;
+      const spaceId = url.searchParams.get("space");
+      const spaces = rt.engine.current().workspaces.flatMap((space) =>
+        space.repoRoot ? [{ workspaceId: space.workspaceId, repoRoot: space.repoRoot }] : [],
+      );
+      const records = listArtifacts(cfg.stateDir).filter(
+        (record) => spaceId === null || artifactSpace(record.cwd, spaces) === spaceId,
+      );
+      return json({ artifacts: records.map(artifactForWire) }, req.headers.get("accept-encoding"));
+    }
+    const artifactMatch = pathname.match(/^\/api\/artifacts\/(art_[a-f0-9-]{36})\/content$/u);
+    if (artifactMatch && req.method === "GET") {
+      const denied = caller.gate("read");
+      if (denied) return denied;
+      const rt = await caller.resolve();
+      if (rt instanceof Response) return rt;
+      const found = artifactFile(cfg.stateDir, artifactMatch[1]!);
+      if (!found) return text("artifact not found", 404);
+      const headers = new Headers({
+        "content-type": found.record.mime,
+        "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(found.record.filename)}`,
+        "cache-control": "private, no-cache",
+      });
+      if (found.record.mime.startsWith("text/html")) {
+        headers.set("content-security-policy", "sandbox allow-scripts; default-src 'self' data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' blob:");
+      }
+      return new Response(Bun.file(found.path), { headers });
+    }
+
     // ── "Look now" ────────────────────────────────────────────────────────
     // A READ, and gated as one. It changes nothing — `mux.refresh()` takes a listing and moves a
     // timer (mux/types.ts) — so gating it behind a device would refuse the one thing a read-only
@@ -1021,8 +1055,15 @@ export function startServer(opts: {
       if (pathname === "/api/artifacts" && req.method === "GET") {
         const denied = guard(req, cfg, "read", pairing);
         if (denied) return denied;
+        const spaceId = url.searchParams.get("space");
+        const artifactRuntime = await localRuntime(sessionName, null);
+        if (artifactRuntime instanceof Response) return artifactRuntime;
+        const spaces = artifactRuntime.engine.current().workspaces.flatMap((space) =>
+          space.repoRoot ? [{ workspaceId: space.workspaceId, repoRoot: space.repoRoot }] : [],
+        );
+        const records = listArtifacts(cfg.stateDir).filter((record) => spaceId === null || artifactSpace(record.cwd, spaces) === spaceId);
         return json(
-          { artifacts: listArtifacts(cfg.stateDir).map(artifactForWire) },
+          { artifacts: records.map(artifactForWire) },
           req.headers.get("accept-encoding"),
         );
       }

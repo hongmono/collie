@@ -848,6 +848,7 @@ export function transcribeAudio(audio: Blob, signal?: AbortSignal): Promise<SttR
   );
 }
 
-export function fetchArtifacts(signal?: AbortSignal): Promise<ArtifactsResponse> {
-  return doReq<ArtifactsResponse>("/api/artifacts", { signal });
+export function fetchArtifacts(signal?: AbortSignal, spaceId?: string, scope?: Scope): Promise<ArtifactsResponse> {
+  const query = spaceId ? `?space=${encodeURIComponent(spaceId)}` : "";
+  return doReq<ArtifactsResponse>(withScope(`/api/artifacts${query}`, scope), { signal });
 }

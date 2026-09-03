@@ -30,6 +30,14 @@ export function artifactForWire(record: ArtifactRecord): ArtifactWire {
   return wire;
 }
 
+/** Assign an artifact to the most-specific Herdr space whose repository contains its publish cwd. */
+export function artifactSpace(cwd: string, spaces: readonly { workspaceId: string; repoRoot: string }[]): string | null {
+  const roots = spaces
+    .filter((space) => cwd === space.repoRoot || cwd.startsWith(`${space.repoRoot}/`))
+    .toSorted((a, b) => b.repoRoot.length - a.repoRoot.length);
+  return roots[0]?.workspaceId ?? null;
+}
+
 const MIME = new Map<string, string>([
   ["html", "text/html; charset=utf-8"],
   ["htm", "text/html; charset=utf-8"],

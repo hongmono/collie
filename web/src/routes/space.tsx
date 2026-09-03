@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useRevalidator } from "react-router";
 
-import { RouteHeader, SettingsGear } from "@/components/app-header";
+import { ArtifactsButton, RouteHeader, SettingsGear } from "@/components/app-header";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { SpaceStrip } from "@/components/space-strip";
 import { SpaceView } from "@/components/space-view";
@@ -79,7 +79,7 @@ export function SpaceRoute() {
       <RouteHeader
         onHome={toDashboard}
         wordmark
-        rightTrail={<SettingsGear scope={data.scope} />}
+        rightTrail={<><ArtifactsButton scope={data.scope} spaceId={spaceId} /><SettingsGear scope={data.scope} /></>}
       />
 
       {/* Content region below the header: the viewport-clipped scroller, the same shell the

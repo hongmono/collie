@@ -36,8 +36,11 @@ export function settingsPath(scope?: Scope): string {
   return `/settings${scopeSearch(scope)}`;
 }
 
-export function artifactsPath(scope?: Scope): string {
-  return `/artifacts${scopeSearch(scope)}`;
+export function artifactsPath(scope?: Scope, spaceId?: string): string {
+  const search = new URLSearchParams(scopeSearch(scope).slice(1));
+  if (spaceId) search.set("space", spaceId);
+  const query = search.toString();
+  return `/artifacts${query ? `?${query}` : ""}`;
 }
 
 /**

@@ -494,13 +494,13 @@ export function SettingsGear({ scope }: { scope?: Scope }) {
   );
 }
 
-export function ArtifactsButton({ scope }: { scope?: Scope }) {
+export function ArtifactsButton({ scope, spaceId }: { scope?: Scope; spaceId?: string }) {
   const navigate = useNavigate();
   useLocale();
   return (
     <button
       type="button"
-      onClick={() => navigate(artifactsPath(scope))}
+      onClick={() => navigate(artifactsPath(scope, spaceId))}
       aria-label={t("artifacts.nav.aria")}
       className="grid size-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"
     >

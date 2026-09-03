@@ -52,6 +52,7 @@ export function packRouteFor(pathname: string): string | null {
  * but not across a link (or, worse, the reverse).
  */
 const FORWARDABLE: readonly RegExp[] = [
+  /^artifacts(?:\/art_[a-f0-9-]{36}\/content)?$/,
   /^pane\/[^/]+(?:\/(?:reply|keys|upload|close|rename|resize|history|focus))?$/,
   /^tab$/,
   /^tab\/[^/]+\/(?:rename|close)$/,
@@ -72,6 +73,7 @@ export type ForwardKind = "read" | "write";
  * an action segment types into or restructures a terminal.
  */
 export function forwardKind(route: string): ForwardKind {
+  if (route.startsWith("artifacts")) return "read";
   if (!route.startsWith("pane/")) return "write";
   const action = route.split("/")[2];
   return action === undefined || action === "history" ? "read" : "write";
@@ -183,7 +185,7 @@ export function forwardHeaders(req: Request, device?: string | null): Headers {
  * `accept-encoding` — the same negotiation `bridge/http-cache.ts` makes for a local route, and the
  * same relationship to the ETag (hashed over the identity body, `vary: accept-encoding` declared).
  */
-const PROXIED_RESPONSE_HEADERS = ["content-type", "etag", "cache-control", "vary"];
+const PROXIED_RESPONSE_HEADERS = ["content-type", "content-disposition", "content-security-policy", "etag", "cache-control", "vary"];
 
 /** Content types worth a transform. Everything else (an image, an upload echo) streams through. */
 function compressibleType(contentType: string | null): boolean {
@@ -459,4 +461,3 @@ export async function forwardToPeer(req: Request, url: URL, deps: ForwardDeps): 
   // out. Compression is decided once per hop (.adr/0023).
   return proxiedResponse(outcome.value, req.headers.get("accept-encoding"));
 }
-

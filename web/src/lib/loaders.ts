@@ -69,7 +69,8 @@ export interface ArtifactsData {
 
 export async function artifactsLoader({ request }: { request?: Request } = {}): Promise<ArtifactsData> {
   try {
-    const response = await fetchArtifacts(request?.signal);
+    const spaceId = request ? new URL(request.url).searchParams.get("space") ?? undefined : undefined;
+    const response = await fetchArtifacts(request?.signal, spaceId, scopeFromUrl(request?.url));
     return { artifacts: response.artifacts, error: false };
   } catch (error) {
     if (isAbortError(error)) throw error;

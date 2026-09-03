@@ -184,6 +184,8 @@ the same handlers. There is no second handler set, no second semantic, and no He
 | `GET` | `/pack/v1/snapshot` | `GET /api/snapshot` (`bridge/server.ts:177`) | **merged** — the only merged route |
 | `GET` | `/pack/v1/pane/:id` | `GET /api/pane/:id` (`:276`) | proxied byte-for-byte |
 | `GET` | `/pack/v1/pane/:id/history` | `GET …/history` (`:277`) | proxied byte-for-byte |
+| `GET` | `/pack/v1/artifacts` | `GET /api/artifacts` | proxied; optional `space` filter |
+| `GET` | `/pack/v1/artifacts/:id/content` | `GET /api/artifacts/:id/content` | proxied byte-for-byte |
 | `POST` | `/pack/v1/pane/:id/reply` | `POST …/reply` (`:279`) | forwarded |
 | `POST` | `/pack/v1/pane/:id/keys` | `POST …/keys` (`:280`) | forwarded |
 | `POST` | `/pack/v1/pane/:id/upload` | `POST …/upload` (`:281`) | forwarded (§13) |

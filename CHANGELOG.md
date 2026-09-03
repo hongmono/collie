@@ -30,6 +30,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 ### Changed
 
 - The Artifacts screen follows Collie's active language.
+- The artifact gallery supports Herdr space filtering, date groups, compact responsive cards, and non-scrolling previews.
 
 ## [1.2.0-3] - 2026-09-03
 

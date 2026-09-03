@@ -103,7 +103,12 @@ async function failureBody(res: Response): Promise<ForwardFailure> {
 }
 
 describe("which routes cross a link", () => {
-  test("the pane family, tabs and workspace map 1:1 onto the pack prefix", () => {
+  test("artifacts, the pane family, tabs and workspace map 1:1 onto the pack prefix", () => {
+    expect(packRouteFor("/api/artifacts")).toBe("artifacts");
+    expect(packRouteFor("/api/artifacts/art_00000000-0000-0000-0000-000000000000/content")).toBe(
+      "artifacts/art_00000000-0000-0000-0000-000000000000/content",
+    );
+    expect(forwardKind("artifacts")).toBe("read");
     expect(packRouteFor("/api/pane/w1:p1")).toBe("pane/w1:p1");
     for (const action of ["reply", "keys", "upload", "close", "rename", "resize", "history"]) {
       expect(packRouteFor(`/api/pane/w1:p1/${action}`)).toBe(`pane/w1:p1/${action}`);
