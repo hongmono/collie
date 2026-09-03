@@ -23,6 +23,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Changed
+
+- Installed Collie now launches in fullscreen display mode.
+
 ## [1.2.0-2] - 2026-09-03
 
 ### Changed
