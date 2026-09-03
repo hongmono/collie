@@ -23,15 +23,15 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
-### Changed
-
-- Numeric `-N` releases now track downstream builds separately from upstream and beta tags.
-
-## [1.3.0] - 2026-09-03
+## [1.2.0-1] - 2026-09-03
 
 ### Added
 
 - Images dropped on the composer now upload through the same attachment flow as the picker and clipboard paste. ([84853b7](https://github.com/hongmono/collie/commit/84853b7))
+
+### Changed
+
+- Numeric `-N` releases now track downstream builds separately from upstream and beta tags. ([1fea471](https://github.com/hongmono/collie/commit/1fea471))
 
 ### Fixed
 
