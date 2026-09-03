@@ -23,13 +23,15 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-03
+
 ### Added
 
-- Images dropped on the composer now upload through the same attachment flow as the picker and clipboard paste.
+- Images dropped on the composer now upload through the same attachment flow as the picker and clipboard paste. ([84853b7](https://github.com/hongmono/collie/commit/84853b7))
 
 ### Fixed
 
-- Codex replies containing explicit blank paragraph rows are verified and submitted without weakening the fail-closed composer guard.
+- Codex replies containing explicit blank paragraph rows are verified and submitted without weakening the fail-closed composer guard. ([f0b4431](https://github.com/hongmono/collie/commit/f0b4431))
 
 ## [1.2.0] - 2026-09-02
 
