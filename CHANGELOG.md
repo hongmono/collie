@@ -23,9 +23,11 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.2.0-2] - 2026-09-03
+
 ### Changed
 
-- Dashboard, space, settings, Pack, shared headers, and status overlays now use the full viewport width.
+- Dashboard, space, settings, Pack, shared headers, and status overlays now use the full viewport width. ([51ac3dd](https://github.com/hongmono/collie/commit/51ac3dd))
 
 ## [1.2.0-1] - 2026-09-03
 
