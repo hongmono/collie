@@ -30,6 +30,7 @@ export const MUX_CAPABILITIES = [
   "agentSessionRef",
   "typeText",
   "sendKeys",
+  "resizeGrid",
   "renamePane",
   "closePane",
   "setFocus",
@@ -85,6 +86,8 @@ export const MUX_CAPABILITY_ROUTES = {
     "GET /api/pane/:id/history — the journal keys an on-disk log off the session an agent named. Without this, history is absent, not empty (bridge/journal/registry.ts).",
   typeText: "POST /api/pane/:id/reply — step one, the literal text.",
   sendKeys: "POST /api/pane/:id/reply (step two, the submit key) and POST /api/pane/:id/keys (the Keys tray).",
+  resizeGrid:
+    "POST /api/pane/:id/resize — apply the last opened device's measured viewport to the shared pane PTY once.",
   renamePane: "POST /api/pane/:id/rename — set or clear a pane's operator-chosen label.",
   closePane: "POST /api/pane/:id/close — kill the pane and the agent in it.",
   setFocus:
@@ -196,6 +199,7 @@ export function declareCapabilities(input: MuxCapabilityInput): MuxCapabilityDec
     agentSessionRef: claimed.has("agentSessionRef"),
     typeText: claimed.has("typeText"),
     sendKeys: claimed.has("sendKeys"),
+    resizeGrid: claimed.has("resizeGrid"),
     renamePane: claimed.has("renamePane"),
     closePane: claimed.has("closePane"),
     setFocus: claimed.has("setFocus"),

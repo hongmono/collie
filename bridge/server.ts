@@ -6,7 +6,12 @@ import type { ActivityLedger } from "./activity.ts";
 import { type AuditDetail, type AuditEntry, AuditLog } from "./audit.ts";
 import { isLoopbackBindHost, type Config } from "./config.ts";
 import { apiError, type ApiErrorBody, type ApiErrorDetail, type ErrorCode } from "./error-codes.ts";
-import { MUX_CAPABILITIES, type MuxCapability, type MuxCapabilityDeclaration } from "./mux/capabilities.ts";
+import {
+  MUX_CAPABILITIES,
+  supportsCapability,
+  type MuxCapability,
+  type MuxCapabilityDeclaration,
+} from "./mux/capabilities.ts";
 import type { MuxAdapter, MuxAck, MuxGrid } from "./mux/types.ts";
 import { computeEtag, gzipJsonResponse, notModified } from "./http-cache.ts";
 import { pluginRoot } from "./root.ts";
@@ -26,6 +31,7 @@ import { herdTagFor, type SessionRegistry, type SessionRuntime, widenedPanes } f
 import type { Snooze } from "./snooze.ts";
 import { imageExtFromBytes, SNIFF_BYTES } from "./uploads.ts";
 import type { UpdateMonitor } from "./update.ts";
+import { parseTerminalGrid, resizeTerminal } from "./terminal-resize.ts";
 import type { StateEngine } from "./state-engine.ts";
 import { adapterFor, buildJournalRegistry } from "./journal/registry.ts";
 import { TranscriptStore } from "./journal/store.ts";
@@ -134,7 +140,7 @@ export function isLoopbackPeer(address: string | null | undefined): boolean {
   return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v4);
 }
 
-const PANE_ROUTE = /^\/api\/pane\/([^/]+)(?:\/(reply|keys|upload|close|rename|history|focus))?$/;
+const PANE_ROUTE = /^\/api\/pane\/([^/]+)(?:\/(reply|keys|upload|close|rename|resize|history|focus))?$/;
 
 /**
  * A pairing claim's refusal, as an error code.
@@ -753,7 +759,7 @@ export function startServer(opts: {
       const paneId = decodeURIComponent(paneMatch[1]!);
       const action = paneMatch[2];
       // Reading a pane is allowed for any access-gated client; every action (reply/keys/upload/
-      // close) types into or restructures a terminal, so it additionally needs an authorised device.
+      // close/resize) types into or restructures a terminal, so it additionally needs an authorised device.
       // `history` is a READ despite being an action segment — it only ever reads a log off disk.
       const isRead = !action || action === "history";
       const denied = caller.gate(isRead ? "read" : "write");
@@ -797,6 +803,10 @@ export function startServer(opts: {
       if (action === "close" && req.method === "POST") return closePane(herdr, rt.engine, paneId, req, audit_, device, session);
       if (action === "rename" && req.method === "POST") return renamePane(herdr, rt.engine, paneId, req, audit_, device, session);
       if (action === "focus" && req.method === "POST") return focusPane(herdr, rt.engine, paneId, req, audit_, device, session);
+      if (action === "resize" && req.method === "POST") {
+        if (!supportsCapability(herdr.capabilities, "resizeGrid")) return text("terminal resize unsupported", 501);
+        return resizePane(rt.socketPath, paneId, req, audit_, device, session);
+      }
       return text("method not allowed", 405);
     }
 
@@ -1434,6 +1444,46 @@ async function readPane(
  */
 export function paneReadResponse(paneId: string, read: MuxGrid): PaneReadResponse {
   return { paneId, text: read.text, truncated: read.truncated, revision: read.revision };
+}
+
+export async function resizePane(
+  socketPath: string,
+  paneId: string,
+  req: Request,
+  audit: AuditLog,
+  device: string | null,
+  session: string,
+  resize: typeof resizeTerminal = resizeTerminal,
+): Promise<Response> {
+  let body: JsonValue;
+  try {
+    // SAFETY: Request.json() returns a value representable by JSON; parseTerminalGrid validates the
+    // object shape and every field before use.
+    body = (await req.json()) as JsonValue;
+  } catch {
+    return text("bad body", 400);
+  }
+  const fields = asJsonRecord(body);
+  const grid = fields ? parseTerminalGrid(fields) : null;
+  if (!grid) return text("cols and rows must be integers from 1 to 1000", 400);
+  try {
+    await resize(socketPath, paneId, grid);
+    audit.record({ action: "pane.resize", paneId, session, device, detail: { ...grid } });
+    return json({ ok: true, ...grid }, req.headers.get("accept-encoding"));
+  } catch (err) {
+    audit.record({
+      action: "pane.resize",
+      paneId,
+      session,
+      device,
+      detail: { ...grid, applied: false, error: errorText(err) },
+    });
+    return json(
+      { ok: false, error: errorText(err) },
+      req.headers.get("accept-encoding"),
+      502,
+    );
+  }
 }
 
 /**

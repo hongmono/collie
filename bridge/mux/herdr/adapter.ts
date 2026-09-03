@@ -88,6 +88,7 @@ const HERDR_CAPABILITIES = declareCapabilities({
     "agentSessionRef",
     "typeText",
     "sendKeys",
+    "resizeGrid",
     "renamePane",
     "closePane",
     "setFocus",

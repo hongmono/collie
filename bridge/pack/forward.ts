@@ -52,7 +52,7 @@ export function packRouteFor(pathname: string): string | null {
  * but not across a link (or, worse, the reverse).
  */
 const FORWARDABLE: readonly RegExp[] = [
-  /^pane\/[^/]+(?:\/(?:reply|keys|upload|close|rename|history|focus))?$/,
+  /^pane\/[^/]+(?:\/(?:reply|keys|upload|close|rename|resize|history|focus))?$/,
   /^tab$/,
   /^tab\/[^/]+\/(?:rename|close)$/,
   /^workspace$/,
@@ -98,7 +98,7 @@ export function forwardAuditAction(route: string): string | null {
   if (route.startsWith("tab/")) return route.endsWith("/close") ? "tab.close" : "tab.rename";
   const action = route.split("/")[2];
   if (action === undefined || action === "history") return null;
-  if (action === "close" || action === "rename") return `pane.${action}`;
+  if (action === "close" || action === "rename" || action === "resize") return `pane.${action}`;
   return action; // reply | keys | upload
 }
 

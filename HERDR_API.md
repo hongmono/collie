@@ -305,6 +305,28 @@ Two sibling structural ops reorder objects. Both live-verified 2026-07-20 on the
 > future-proofing only — never as a load-bearing change detector (Collie's prompt-select race
 > guard re-derives the menu from content for exactly this reason).
 
+## One-shot PTY resize (Herdr 0.8.2)
+
+Collie uses the CLI controller for one operation the socket schema does not expose: applying the
+last opened writable device's measured character grid to the real shared PTY.
+
+```
+herdr terminal session control \
+  <pane_id> \
+  --cols <cols> \
+  --rows <rows>
+```
+
+The exact session is selected with `HERDR_SOCKET_PATH`; the CLI has no socket option. Live-probed on
+Herdr 0.8.2: stdin accepts NDJSON, and `{"type":"terminal.release"}` exits 0 and releases the
+controller. Collie deliberately omits the opt-in `--takeover` flag, so an existing controller is not
+stolen. It writes release immediately after attach and never consumes frames or runs a terminal emulator
+([ADR 0035](./.adr/0035-the-last-active-device-sizes-the-shared-pty.md)).
+
+The bridge route is `POST /api/pane/:id/resize` with JSON `{cols, rows}`. Both values are bounded
+integers from 1 through 1000. The operation is exposed only when the mux declares
+`resizeGrid`; Herdr does, tmux and zellij do not.
+
 ## Event stream (now wired: event-poked polling)
 
 `events.subscribe` `{subscriptions: [{type, pane_id?}]}` keeps the connection open and streams

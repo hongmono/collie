@@ -344,7 +344,15 @@ assert_contains "$UNIT" "StartLimitIntervalSec=0"
 # The Host gate fails closed, so the allowlist this node answers on is DISCOVERED and baked in —
 # otherwise a normal tailnet install would refuse every request until the operator typed it.
 assert_contains "$UNIT" "Environment=COLLIE_TAILSCALE_HOSTS=host.example"
-case "$UNIT" in *bun*) fail "the generated unit still names an interpreter" ;; esac
+# Inspect only the executable token. Searching the whole unit for `bun` false-positives on ordinary
+# paths such as `/home/ubuntu/...`, whose directory name contains those three letters.
+while IFS= read -r line; do
+  case "$line" in
+    ExecStart=*)
+      case "${line#ExecStart=}" in bun\ *|*/bun\ *) fail "the generated unit still names an interpreter" ;; esac
+      ;;
+  esac
+done <<< "$UNIT"
 # The banner: `start` and `status` render it from one function, so they can never disagree.
 assert_contains "$STDOUT" "bridge started (systemd --user: collie)"
 assert_contains "$STDOUT" "✓ Collie is running"

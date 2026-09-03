@@ -165,7 +165,7 @@ export default defineConfig({
         id: "/",
         start_url: "/",
         scope: "/",
-        display: "fullscreen",
+        display: "standalone",
         orientation: "portrait",
         background_color: "#0a0a0a",
         theme_color: "#0a0a0a",

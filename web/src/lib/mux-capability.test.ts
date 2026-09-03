@@ -14,13 +14,13 @@ function cfg(over: Partial<MuxConfig> = {}): MuxConfig {
 
 describe("muxCapability — the default is CAPABLE, and only an explicit no is a no", () => {
   it("no config at all reads as capable: an older bridge must not hide working controls", () => {
-    expect(muxCapability(null, "createSpace").capable).toBe(true);
+    expect(muxCapability(null, "createSpace")).toMatchObject({ capable: true, known: false });
     expect(muxCapability(null, "agentSessionRef").capable).toBe(true);
   });
 
   it("a config that does not mention the capability reads as capable", () => {
     // The mid-upgrade case: a bridge that has never heard of a capability this bundle knows.
-    expect(muxCapability(cfg(), "createSpace").capable).toBe(true);
+    expect(muxCapability(cfg(), "createSpace")).toMatchObject({ capable: true, known: true });
   });
 
   it("`true` is capable and `false` is not — nothing else moves the answer", () => {

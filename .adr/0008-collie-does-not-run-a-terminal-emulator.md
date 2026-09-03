@@ -1,6 +1,6 @@
 # 0008 — Collie does not run a terminal emulator
 
-Status: **Accepted** (2026-08-04)
+Status: **Accepted** (2026-08-04), amended by [ADR 0035](./0035-the-last-active-device-sizes-the-shared-pty.md)
 
 ## Context
 

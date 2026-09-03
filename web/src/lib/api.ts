@@ -452,6 +452,18 @@ export function sendReply(
   );
 }
 
+/** Apply this client's measured character grid to the real pane PTY once. */
+export function resizeTerminal(
+  paneId: string,
+  grid: { cols: number; rows: number },
+  scope?: Scope,
+): Promise<{ ok: true; cols: number; rows: number }> {
+  return req(withScope(`/api/pane/${encodeURIComponent(paneId)}/resize`, scope), {
+    method: "POST",
+    body: JSON.stringify(grid),
+  });
+}
+
 export function sendKeys(
   paneId: string,
   keys: string[],

@@ -364,7 +364,11 @@ export const AnsiOutput = memo(function AnsiOutput({
   return (
     <>
       {rawBlocks.length > 0 && (
-        <pre className={preClass(wrap, className)} style={{ fontSize: `${fontSize}px` }}>
+        <pre
+          data-terminal-output
+          className={preClass(wrap, className)}
+          style={{ fontSize: `${fontSize}px` }}
+        >
           {rawBlocks.map(renderBlock)}
         </pre>
       )}

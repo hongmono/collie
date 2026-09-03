@@ -18,6 +18,7 @@ vi.mock("@/lib/wizard-action", () => ({
 
 import { server } from "@/test/setup";
 import { clearStatus } from "@/lib/status";
+import { __resetOperatorCommands } from "@/lib/operator-config";
 import { setZenEnabled, __resetZen } from "@/lib/zen";
 import { setStripsCollapsed, __resetStripsCollapsed } from "@/lib/strips-collapsed";
 import { submitPromptOption } from "@/lib/prompt-action";
@@ -39,6 +40,7 @@ beforeAll(() => {
 });
 beforeEach(() => {
   clearStatus();
+  __resetOperatorCommands();
   // Zen's availability is a module-scoped, localStorage-backed store — one case turning it on would
   // otherwise leave every later case rendering a menu row it never asked for.
   __resetZen();
@@ -106,6 +108,145 @@ describe("AgentChat — reply flow", () => {
 
     expect(await screen.findByText("agent busy")).toBeInTheDocument();
     expect(box).toHaveValue("retry this"); // not cleared on failure
+  });
+});
+
+describe("AgentChat — fit the PTY to the last active device", () => {
+  type ResizeWatch = { element: Element; callback: ResizeObserverCallback };
+  let resizeWatches: ResizeWatch[];
+
+  class MockResizeObserver {
+    private readonly callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(element: Element) {
+      resizeWatches.push({ element, callback: this.callback });
+    }
+    disconnect() {}
+    unobserve() {}
+  }
+
+  function fireObservedResize(element: Element) {
+    for (const watch of resizeWatches.filter((candidate) => candidate.element === element)) {
+      // SAFETY: the callback under test does not inspect the observer argument; this harness only
+      // needs to deliver the browser notification at the observed-element seam.
+      watch.callback([], {} as ResizeObserver);
+    }
+  }
+
+  beforeEach(() => {
+    resizeWatches = [];
+    vi.stubGlobal("ResizeObserver", MockResizeObserver);
+    server.use(
+      http.get("/api/config", () =>
+        HttpResponse.json({
+          push: false,
+          vapidPublicKey: "",
+          mux: { name: "reference", capabilities: { resizeGrid: true }, unsupportedKeys: [], notes: {} },
+        }),
+      ),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts this device's measured grid exactly once when a pane opens", async () => {
+    const grids: Array<{ cols: number; rows: number }> = [];
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, async ({ request }) => {
+        // SAFETY: this test owns the only caller and posts the exact resize-grid JSON shape.
+        grids.push((await request.json()) as { cols: number; rows: number });
+        return HttpResponse.json({ ok: true, ...grids.at(-1)! });
+      }),
+    );
+    const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
+    const height = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
+
+    renderChat();
+
+    await waitFor(() => expect(grids).toHaveLength(1));
+    expect(grids[0]!.cols).toBeGreaterThan(0);
+    expect(grids[0]!.rows).toBeGreaterThan(0);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(grids).toHaveLength(1);
+    width.mockRestore();
+    height.mockRestore();
+  });
+
+  it("resends a changed grid when the visible terminal area is resized", async () => {
+    const grids: Array<{ cols: number; rows: number }> = [];
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, async ({ request }) => {
+        // SAFETY: this test owns the only caller and posts the exact resize-grid JSON shape.
+        grids.push((await request.json()) as { cols: number; rows: number });
+        return HttpResponse.json({ ok: true, ...grids.at(-1)! });
+      }),
+    );
+    let widthPx = 390;
+    let heightPx = 600;
+    const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(() => widthPx);
+    const height = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(() => heightPx);
+
+    const { container } = renderChat();
+    await waitFor(() => expect(grids).toHaveLength(1));
+    const mirror = container.querySelector<HTMLElement>('div[role="presentation"]')!;
+    const scrollport = mirror.firstElementChild!.firstElementChild!;
+
+    widthPx = 780;
+    heightPx = 360;
+    fireObservedResize(scrollport);
+
+    await waitFor(() => expect(grids).toHaveLength(2));
+    expect(grids[1]!.cols).toBeGreaterThan(grids[0]!.cols);
+    expect(grids[1]!.rows).toBeLessThan(grids[0]!.rows);
+    fireObservedResize(scrollport);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(grids).toHaveLength(2);
+    width.mockRestore();
+    height.mockRestore();
+  });
+
+  it("resends the grid after the terminal font size changes", async () => {
+    const user = userEvent.setup();
+    const grids: Array<{ cols: number; rows: number }> = [];
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, async ({ request }) => {
+        // SAFETY: this test owns the only caller and posts the exact resize-grid JSON shape.
+        grids.push((await request.json()) as { cols: number; rows: number });
+        return HttpResponse.json({ ok: true, ...grids.at(-1)! });
+      }),
+    );
+    const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
+    const height = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
+
+    renderChat();
+    await waitFor(() => expect(grids).toHaveLength(1));
+    await user.click(screen.getByRole("button", { name: "Display settings" }));
+    await user.click(screen.getByRole("button", { name: "Increase font size" }));
+
+    await waitFor(() => expect(grids).toHaveLength(2));
+    expect(grids[1]!.cols).toBeLessThan(grids[0]!.cols);
+    expect(grids[1]!.rows).toBeLessThan(grids[0]!.rows);
+    width.mockRestore();
+    height.mockRestore();
+  });
+
+  it("does not resize from a read-only device", async () => {
+    let calls = 0;
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, () => {
+        calls += 1;
+        return HttpResponse.json({ ok: true, cols: 50, rows: 30 });
+      }),
+    );
+
+    renderChat({ device: { enforced: true, device: "spare-phone", authorized: false } });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls).toBe(0);
   });
 });
 

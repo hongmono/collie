@@ -21,6 +21,7 @@ import {
   parsePairRequest,
   parseSnoozeRequest,
   replyPane,
+  resizePane,
   requestDevice,
   resolveStaticPath,
   sendReplySteps,
@@ -505,6 +506,61 @@ describe("pane write prompt binding", () => {
       entries,
     };
   }
+
+  test("resize validates and audits the applied terminal grid", async () => {
+    const { audit, entries } = auditEntries();
+    const calls: unknown[][] = [];
+    const resizeRequest = new Request("http://localhost/api/pane/w1%3Ap1/resize", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cols: 51, rows: 29 }),
+    });
+    const res = await resizePane(
+      "/tmp/herdr.sock",
+      "w1:p1",
+      resizeRequest,
+      audit,
+      "phone",
+      "default",
+      async (...args) => {
+        calls.push(args);
+      },
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, cols: 51, rows: 29 });
+    expect(calls).toEqual([["/tmp/herdr.sock", "w1:p1", { cols: 51, rows: 29 }]]);
+    expect(entries[0]).toMatchObject({
+      action: "pane.resize",
+      paneId: "w1:p1",
+      session: "default",
+      device: "phone",
+      detail: { cols: 51, rows: 29 },
+    });
+  });
+
+  test("resize rejects an invalid grid before invoking Herdr", async () => {
+    const { audit } = auditEntries();
+    let called = false;
+    const resizeRequest = new Request("http://localhost/api/pane/w1%3Ap1/resize", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cols: 0, rows: 29 }),
+    });
+    const res = await resizePane(
+      "/tmp/herdr.sock",
+      "w1:p1",
+      resizeRequest,
+      audit,
+      null,
+      "default",
+      async () => {
+        called = true;
+      },
+    );
+    expect(res.status).toBe(400);
+    expect(called).toBe(false);
+  });
 
   test("keys without expected_prompt writes without an extra pane read", async () => {
     const client = new FakePaneClient();

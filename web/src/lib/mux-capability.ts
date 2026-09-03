@@ -51,6 +51,8 @@ const NO_KEYS: readonly string[] = [];
 
 /** A capability's answer, and — when it is absent — the adapter's own reason. */
 export interface MuxCapabilityState {
+  /** Whether `/api/config` has answered; automatic side effects must wait for this. */
+  readonly known: boolean;
   /** Whether the control this capability backs can work. Absent data reads as `true`. */
   readonly capable: boolean;
   /**
@@ -76,7 +78,7 @@ export function muxCapability(cfg: MuxConfig | null, capability: MuxCapability):
   // `!== false` rather than `?? true` for the same reason spelled out above, one step finer: a
   // bridge that answered `undefined` for this capability has not said no.
   const capable = cfg?.capabilities?.[capability] !== false;
-  return { capable, note: capable ? "" : (cfg?.notes?.[capability] ?? ""), mux };
+  return { known: cfg !== null, capable, note: capable ? "" : (cfg?.notes?.[capability] ?? ""), mux };
 }
 
 /**

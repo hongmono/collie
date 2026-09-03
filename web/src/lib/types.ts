@@ -565,6 +565,7 @@ export const MUX_CAPABILITIES = [
   "agentSessionRef",
   "typeText",
   "sendKeys",
+  "resizeGrid",
   "renamePane",
   "closePane",
   "setFocus",

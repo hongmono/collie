@@ -12,6 +12,7 @@ import {
   fetchSnapshot,
   getNotifyPrefs,
   refreshNow,
+  resizeTerminal,
   sendKeys,
   sendReply,
   uploadImage,
@@ -27,6 +28,24 @@ import {
 describe("api client", () => {
   it("sendReply returns the bridge's ok result on success", async () => {
     await expect(sendReply("w1:p1", "hi")).resolves.toEqual({ ok: true });
+  });
+
+  it("posts the measured terminal grid to the pane's full scope", async () => {
+    let body: unknown;
+    let url = "";
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, async ({ request }) => {
+        body = await request.json();
+        url = request.url;
+        return HttpResponse.json({ ok: true, cols: 52, rows: 31 });
+      }),
+    );
+
+    await expect(
+      resizeTerminal("w1:p1", { cols: 52, rows: 31 }, { host: "desk", session: "phone" }),
+    ).resolves.toEqual({ ok: true, cols: 52, rows: 31 });
+    expect(body).toEqual({ cols: 52, rows: 31 });
+    expect(url).toContain("host=desk&session=phone");
   });
 
   it("createTab posts and returns the created pane", async () => {

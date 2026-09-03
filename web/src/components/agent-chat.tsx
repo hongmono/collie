@@ -20,6 +20,9 @@ import { useLocale } from "@/hooks/use-locale";
 import { isConnecting } from "@/lib/connection";
 import { t, type MessageKey } from "@/lib/i18n";
 import { setStatus } from "@/lib/status";
+import { resizeTerminal } from "@/lib/api";
+import { measureTerminalGrid } from "@/lib/terminal-grid";
+import { hasResizeObserver } from "@/lib/env";
 import { useZenEnabled } from "@/lib/zen";
 import { setStripsCollapsed, useStripsCollapsed } from "@/lib/strips-collapsed";
 import { ChatMessageList, type ChatMessageListHandle } from "@/components/ui/chat/chat-message-list";
@@ -191,6 +194,7 @@ export function AgentChat({
   const { newTab } = useSpaceActions();
   // Single display-prefs instance: the View controls (in <Composer>) write it, the mirror reads it.
   const { prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus } = useDisplayPrefs();
+  const resizeCapability = useMuxCapability("resizeGrid");
   // The chosen terminal font (Settings → Terminal font), applied by re-pointing `--font-mono` on
   // the two mirror surfaces below and NOWHERE else — see mirrorFont() for how, and why it is not a
   // custom property. Scoped to terminal CONTENT on purpose: app chrome that happens to be monospace
@@ -339,8 +343,84 @@ export function AgentChat({
   }
   const listRef = useRef<ChatMessageListHandle>(null);
   const composerRef = useRef<ComposerHandle>(null);
+  const lastFitRef = useRef<{ paneId: string; cols: number; rows: number } | null>(null);
 
   const gone = !agent;
+
+  // The device that most recently opens OR resizes a pane owns its headless PTY geometry. Measure
+  // after layout settles, then release Herdr's controller immediately on the bridge. The observer
+  // catches orientation, browser-viewport and chrome/layout changes; the preference dependencies
+  // catch terminal font changes even when the scrollport's pixels stay fixed. Repeated browser
+  // events are harmless: only a grid that differs from the last successful attempt is posted.
+  useEffect(() => {
+    if (!resizeCapability.known || !resizeCapability.capable || readOnly || gone) return;
+
+    let cancelled = false;
+    let firstFrame: number | null = null;
+    let secondFrame: number | null = null;
+    const cancelFrames = () => {
+      if (firstFrame !== null) cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) cancelAnimationFrame(secondFrame);
+      firstFrame = null;
+      secondFrame = null;
+    };
+    const measureAndSend = () => {
+      if (cancelled) return;
+      const scrollport = listRef.current?.getScrollElement();
+      const grid = scrollport ? measureTerminalGrid(scrollport, prefs.fontSize) : null;
+      if (!grid) return;
+      const previous = lastFitRef.current;
+      if (previous?.paneId === paneId && previous.cols === grid.cols && previous.rows === grid.rows) {
+        return;
+      }
+      const attempt = { paneId, ...grid };
+      lastFitRef.current = attempt;
+      void resizeTerminal(paneId, grid, scope).catch(() => {
+        if (lastFitRef.current === attempt) lastFitRef.current = null;
+        console.warn("[terminal] resize failed");
+      });
+    };
+    const scheduleMeasure = () => {
+      cancelFrames();
+      firstFrame = requestAnimationFrame(() => {
+        firstFrame = null;
+        secondFrame = requestAnimationFrame(() => {
+          secondFrame = null;
+          measureAndSend();
+        });
+      });
+    };
+
+    scheduleMeasure();
+    const scrollport = listRef.current?.getScrollElement();
+    const observer = scrollport && hasResizeObserver() ? new ResizeObserver(scheduleMeasure) : null;
+    if (scrollport) observer?.observe(scrollport);
+    window.addEventListener("resize", scheduleMeasure);
+    window.addEventListener("orientationchange", scheduleMeasure);
+    window.visualViewport?.addEventListener("resize", scheduleMeasure);
+    const fonts = "fonts" in document ? document.fonts : undefined;
+    fonts?.addEventListener("loadingdone", scheduleMeasure);
+    void fonts?.ready.then(scheduleMeasure);
+
+    return () => {
+      cancelled = true;
+      cancelFrames();
+      observer?.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+      window.removeEventListener("orientationchange", scheduleMeasure);
+      window.visualViewport?.removeEventListener("resize", scheduleMeasure);
+      fonts?.removeEventListener("loadingdone", scheduleMeasure);
+    };
+  }, [
+    gone,
+    paneId,
+    prefs.fontFamily,
+    prefs.fontSize,
+    readOnly,
+    resizeCapability.capable,
+    resizeCapability.known,
+    scope,
+  ]);
 
   // Swipe up (or just tap) the handle above the composer to bring up the pane switcher. A lowish
   // threshold + a taller hit area (below) make the gesture easy to land with a thumb; tapping is the

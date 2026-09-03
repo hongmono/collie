@@ -105,7 +105,7 @@ async function failureBody(res: Response): Promise<ForwardFailure> {
 describe("which routes cross a link", () => {
   test("the pane family, tabs and workspace map 1:1 onto the pack prefix", () => {
     expect(packRouteFor("/api/pane/w1:p1")).toBe("pane/w1:p1");
-    for (const action of ["reply", "keys", "upload", "close", "rename", "history"]) {
+    for (const action of ["reply", "keys", "upload", "close", "rename", "resize", "history"]) {
       expect(packRouteFor(`/api/pane/w1:p1/${action}`)).toBe(`pane/w1:p1/${action}`);
     }
     expect(packRouteFor("/api/tab")).toBe("tab");
@@ -149,7 +149,7 @@ describe("which routes cross a link", () => {
     const tab = server.match(/^const TAB_ACTION_ROUTE = (.+);$/m)![1]!;
     const alternation = /\(([a-z]+(?:\|[a-z]+)+)\)/;
     const paneActions = pane.match(alternation)![1]!.split("|").toSorted();
-    expect(paneActions).toEqual(["close", "focus", "history", "keys", "rename", "reply", "upload"]);
+    expect(paneActions).toEqual(["close", "focus", "history", "keys", "rename", "reply", "resize", "upload"]);
     for (const action of paneActions) expect(packRouteFor(`/api/pane/x/${action}`)).toBe(`pane/x/${action}`);
     const tabActions = tab.match(alternation)![1]!.split("|").toSorted();
     expect(tabActions).toEqual(["close", "rename"]);
@@ -159,7 +159,7 @@ describe("which routes cross a link", () => {
   test("read vs write is decided exactly as server.ts decides it — history is a READ", () => {
     expect(forwardKind("pane/w1:p1")).toBe("read");
     expect(forwardKind("pane/w1:p1/history")).toBe("read");
-    for (const action of ["reply", "keys", "upload", "close", "rename"]) {
+    for (const action of ["reply", "keys", "upload", "close", "rename", "resize"]) {
       expect(forwardKind(`pane/w1:p1/${action}`)).toBe("write");
     }
     expect(forwardKind("tab")).toBe("write");
@@ -172,6 +172,7 @@ describe("which routes cross a link", () => {
     expect(forwardAuditAction("pane/w1:p1/upload")).toBe("upload");
     expect(forwardAuditAction("pane/w1:p1/close")).toBe("pane.close");
     expect(forwardAuditAction("pane/w1:p1/rename")).toBe("pane.rename");
+    expect(forwardAuditAction("pane/w1:p1/resize")).toBe("pane.resize");
     expect(forwardAuditAction("tab")).toBe("tab.create");
     expect(forwardAuditAction("tab/w1:t1/rename")).toBe("tab.rename");
     expect(forwardAuditAction("tab/w1:t1/close")).toBe("tab.close");

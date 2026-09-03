@@ -14,6 +14,10 @@ describe("terminal mirror colour space", () => {
     return container.querySelector("pre")!;
   }
 
+  it("marks the rendered terminal block for viewport grid measurement", () => {
+    expect(mirror("hello")).toHaveAttribute("data-terminal-output");
+  });
+
   it("inverts in light and leaves dark alone", () => {
     const pre = mirror("hello");
     expect(pre.className).toContain("[filter:invert(1)_hue-rotate(180deg)]");

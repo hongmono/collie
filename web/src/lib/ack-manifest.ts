@@ -80,6 +80,10 @@ export const ACK_MANIFEST = {
     channel: "silent",
     why: "It cannot fail in a way the operator could act on: it swallows its own throw by design (see its doc in lib/api.ts), and the revalidation that every caller runs immediately after is what reports the herd as it actually is.",
   },
+  resizeTerminal: {
+    channel: "silent",
+    why: "This is an unattended pane-open adjustment, not a tapped control: the mirror filling its viewport is the outcome, and a failed fit leaves the mirror usable while the next pane open retries (ADR 0035).",
+  },
   closePane: {
     channel: "echo",
     why: "The pane VANISHING from the strip is the outcome, so the echo carries only the acceptance — a success status would announce a fact the screen is already making, and the pane sheet closes before it could be read anyway.",
