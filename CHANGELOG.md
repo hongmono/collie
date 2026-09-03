@@ -27,6 +27,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 - Agents can autonomously publish previews, reports, images, data, and downloads to the new Collie-hosted Artifacts screen.
 
+### Changed
+
+- The Artifacts screen follows Collie's active language.
+
 ## [1.2.0-3] - 2026-09-03
 
 ### Changed

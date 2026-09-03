@@ -496,11 +496,12 @@ export function SettingsGear({ scope }: { scope?: Scope }) {
 
 export function ArtifactsButton({ scope }: { scope?: Scope }) {
   const navigate = useNavigate();
+  useLocale();
   return (
     <button
       type="button"
       onClick={() => navigate(artifactsPath(scope))}
-      aria-label="Artifacts"
+      aria-label={t("artifacts.nav.aria")}
       className="grid size-11 place-items-center text-muted-foreground transition-colors hover:text-foreground"
     >
       <Images className="size-5" />

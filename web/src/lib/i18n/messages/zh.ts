@@ -10,6 +10,14 @@ export const zh: Dictionary = {
   // --- settings (page chrome) ---
   "settings.title": "设置",
   "settings.nav.back": "返回",
+  "artifacts.title": "产物",
+  "artifacts.nav.aria": "打开产物",
+  "artifacts.loadError": "无法加载产物。",
+  "artifacts.empty.title": "暂无产物",
+  "artifacts.empty.body": "代理创建的预览、报告、图片和下载文件会显示在这里。",
+  "artifacts.open": "打开",
+  "artifacts.download": "下载",
+  "artifacts.status.hosted": "已托管",
 
   // --- settings.theme ---
   "settings.theme.title": "主题外观",

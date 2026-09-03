@@ -9,6 +9,14 @@ export const ja: Dictionary = {
   // --- settings (page chrome) ---
   "settings.title": "設定",
   "settings.nav.back": "戻る",
+  "artifacts.title": "成果物",
+  "artifacts.nav.aria": "成果物を開く",
+  "artifacts.loadError": "成果物を読み込めませんでした。",
+  "artifacts.empty.title": "成果物はまだありません",
+  "artifacts.empty.body": "エージェントが作成したプレビュー、レポート、画像、ダウンロードがここに表示されます。",
+  "artifacts.open": "開く",
+  "artifacts.download": "ダウンロード",
+  "artifacts.status.hosted": "公開済み",
 
   // --- settings.theme ---
   "settings.theme.title": "外観",

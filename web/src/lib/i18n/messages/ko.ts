@@ -10,6 +10,14 @@ export const ko: Dictionary = {
   // --- settings (page chrome) ---
   "settings.title": "설정",
   "settings.nav.back": "뒤로",
+  "artifacts.title": "결과물",
+  "artifacts.nav.aria": "결과물 열기",
+  "artifacts.loadError": "결과물을 불러오지 못했습니다.",
+  "artifacts.empty.title": "아직 결과물이 없습니다",
+  "artifacts.empty.body": "에이전트가 만든 미리보기, 보고서, 이미지와 다운로드 파일이 여기에 표시됩니다.",
+  "artifacts.open": "열기",
+  "artifacts.download": "다운로드",
+  "artifacts.status.hosted": "호스팅됨",
 
   // --- settings.theme ---
   "settings.theme.title": "테마",

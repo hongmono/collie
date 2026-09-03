@@ -19,6 +19,14 @@ export const en = {
   // --- settings (page chrome) ---
   "settings.title": "Settings",
   "settings.nav.back": "Back",
+  "artifacts.title": "Artifacts",
+  "artifacts.nav.aria": "Open artifacts",
+  "artifacts.loadError": "Couldn’t load artifacts.",
+  "artifacts.empty.title": "No artifacts yet",
+  "artifacts.empty.body": "Agent-created previews, reports, images and downloads will appear here.",
+  "artifacts.open": "Open",
+  "artifacts.download": "Download",
+  "artifacts.status.hosted": "hosted",
 
   // --- settings.theme ---
   "settings.theme.title": "Appearance",

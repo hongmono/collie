@@ -9,6 +9,14 @@ export const es: Dictionary = {
   // --- settings (page chrome) ---
   "settings.title": "Ajustes",
   "settings.nav.back": "Atrás",
+  "artifacts.title": "Artefactos",
+  "artifacts.nav.aria": "Abrir artefactos",
+  "artifacts.loadError": "No se pudieron cargar los artefactos.",
+  "artifacts.empty.title": "Aún no hay artefactos",
+  "artifacts.empty.body": "Las vistas previas, informes, imágenes y descargas de los agentes aparecerán aquí.",
+  "artifacts.open": "Abrir",
+  "artifacts.download": "Descargar",
+  "artifacts.status.hosted": "alojado",
 
   // --- settings.theme ---
   "settings.theme.title": "Tema",

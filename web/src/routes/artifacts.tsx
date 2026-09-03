@@ -8,6 +8,8 @@ import type { ArtifactsData } from "@/lib/loaders";
 import { homePath } from "@/lib/nav";
 import { useScope } from "@/lib/session";
 import type { ArtifactRecord } from "@/lib/types";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/hooks/use-locale";
 
 const localUrl = (artifact: ArtifactRecord) => `/api/artifacts/${encodeURIComponent(artifact.id)}/content`;
 
@@ -37,24 +39,25 @@ export function ArtifactsRoute() {
   const data = useLoaderData() as ArtifactsData;
   const navigate = useNavigate();
   const scope = useScope();
+  useLocale();
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col">
       <RouteHeader
         override={
           <>
-            <Button variant="ghost" size="icon" className="size-11" onClick={() => navigate(homePath(scope))} aria-label="Back">
+            <Button variant="ghost" size="icon" className="size-11" onClick={() => navigate(homePath(scope))} aria-label={t("settings.nav.back")}>
               <ArrowLeft className="size-5" />
             </Button>
-            <h1 className="text-lg font-semibold tracking-tight">Artifacts</h1>
+            <h1 className="text-lg font-semibold tracking-tight">{t("artifacts.title")}</h1>
           </>
         }
       />
       <main className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-        {data.error && <p className="text-sm text-destructive">Couldn’t load artifacts.</p>}
+        {data.error && <p className="text-sm text-destructive">{t("artifacts.loadError")}</p>}
         {!data.error && data.artifacts.length === 0 && (
           <Card className="gap-2 p-5">
-            <p className="font-medium">No artifacts yet</p>
-            <p className="text-sm text-muted-foreground">Agent-created previews, reports, images and downloads will appear here.</p>
+            <p className="font-medium">{t("artifacts.empty.title")}</p>
+            <p className="text-sm text-muted-foreground">{t("artifacts.empty.body")}</p>
           </Card>
         )}
         {data.artifacts.map((artifact) => (
@@ -63,15 +66,15 @@ export function ArtifactsRoute() {
             <div className="min-w-0">
               <h2 className="truncate font-medium">{artifact.title}</h2>
               <p className="truncate text-xs text-muted-foreground">
-                {artifact.filename} · {formatBytes(artifact.size)} · {artifact.status}
+                {artifact.filename} · {formatBytes(artifact.size)} · {t("artifacts.status.hosted")}
               </p>
             </div>
             <div className="flex gap-2">
               <a className={buttonVariants({ variant: "outline", size: "sm" })} href={localUrl(artifact)} target="_blank" rel="noreferrer">
-                <ExternalLink className="size-4" /> Open
+                <ExternalLink className="size-4" /> {t("artifacts.open")}
               </a>
               <a className={buttonVariants({ variant: "ghost", size: "sm" })} href={localUrl(artifact)} download={artifact.filename}>
-                <Download className="size-4" /> Download
+                <Download className="size-4" /> {t("artifacts.download")}
               </a>
             </div>
           </Card>

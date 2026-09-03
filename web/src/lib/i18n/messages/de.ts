@@ -10,6 +10,14 @@ export const de: Dictionary = {
   // --- settings (page chrome) ---
   "settings.title": "Einstellungen",
   "settings.nav.back": "Zurück",
+  "artifacts.title": "Artefakte",
+  "artifacts.nav.aria": "Artefakte öffnen",
+  "artifacts.loadError": "Artefakte konnten nicht geladen werden.",
+  "artifacts.empty.title": "Noch keine Artefakte",
+  "artifacts.empty.body": "Vorschauen, Berichte, Bilder und Downloads von Agenten erscheinen hier.",
+  "artifacts.open": "Öffnen",
+  "artifacts.download": "Herunterladen",
+  "artifacts.status.hosted": "bereitgestellt",
 
   // --- settings.theme ---
   "settings.theme.title": "Erscheinungsbild",
