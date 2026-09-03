@@ -213,6 +213,7 @@ export const zh: Dictionary = {
   "composer.destructive.confirm": "破坏性操作：{reason}。再次点击“发送”以确认",
   "composer.destructive.confirmOnHost": "破坏性操作：{host} 上的 {reason}。再次点击“发送”以确认",
   "composer.upload.success": "已添加图片，路径已填入消息",
+  "composer.upload.drop": "拖放图片以附加",
   "composer.noEcho.title": "密码提示（无回显）",
   "composer.noEcho.noLiveTyped":
     "已键入内容已在窗格中但未提交。当前视图非实时，无法在此发送。请直接在终端中处理。",

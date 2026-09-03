@@ -224,6 +224,7 @@ export const ja: Dictionary = {
   "composer.destructive.confirm": "破壊的操作: {reason}。確認のため送信を再タップしてください",
   "composer.destructive.confirmOnHost": "破壊的操作: {host}上の{reason}。確認のため送信を再タップしてください",
   "composer.upload.success": "画像を追加しました。パスを入力欄に挿入しました",
+  "composer.upload.drop": "画像をドロップして添付",
   "composer.noEcho.title": "パスワード入力プロンプト: エコーバック無効",
   "composer.noEcho.noLiveTyped":
     "入力内容はペインに存在しますが未送信です。このビューはライブではないため送信できません。ターミナルで直接操作してください。",

@@ -230,6 +230,7 @@ export const de: Dictionary = {
   "composer.destructive.confirmOnHost":
     "Destruktiv: {reason} auf {host}. Erneut tippen zum Bestätigen.",
   "composer.upload.success": "Bild hinzugefügt, Pfad steht in der Nachricht",
+  "composer.upload.drop": "Bild zum Anhängen ablegen",
   "composer.noEcho.title": "Passwortabfrage ohne Echo",
   "composer.noEcho.noLiveTyped":
     "Der Text steht unbestätigt im Pane. Da diese Ansicht nicht live ist, kann von hier aus nichts gesendet werden. Die Eingabe direkt im Terminal beantworten.",

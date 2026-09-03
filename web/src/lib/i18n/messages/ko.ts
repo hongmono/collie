@@ -222,6 +222,7 @@ export const ko: Dictionary = {
   "composer.destructive.confirm": "주의가 필요한 명령: {reason}. 확인하려면 전송을 다시 누르세요.",
   "composer.destructive.confirmOnHost": "주의가 필요한 명령: {host}의 {reason}. 확인하려면 전송을 다시 누르세요.",
   "composer.upload.success": "이미지 추가 완료. 메시지에 경로를 삽입했습니다.",
+  "composer.upload.drop": "이미지를 놓아 첨부",
   "composer.noEcho.title": "비밀번호 입력 프롬프트. 입력 내용이 표시되지 않습니다.",
   "composer.noEcho.noLiveTyped":
     "입력한 내용이 창에 남아 있지만 제출되지 않았습니다. 현재 뷰는 실시간 세션이 아니므로 여기서 전송할 수 없습니다. 터미널에서 직접 처리하세요.",

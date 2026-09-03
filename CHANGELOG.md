@@ -23,6 +23,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Added
+
+- Images dropped on the composer now upload through the same attachment flow as the picker and clipboard paste.
+
 ### Fixed
 
 - Codex replies containing explicit blank paragraph rows are verified and submitted without weakening the fail-closed composer guard.

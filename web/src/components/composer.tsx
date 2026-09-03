@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import type { ChangeEvent, ClipboardEvent, CSSProperties, ReactNode } from "react";
+import type { ChangeEvent, ClipboardEvent, CSSProperties, DragEvent as ReactDragEvent, ReactNode } from "react";
 import { useRevalidator } from "react-router";
 import { Check, ImagePlus, Keyboard, Loader2, Mic, Send, Settings2, Slash, Square, Terminal, X, Zap } from "lucide-react";
 
@@ -183,6 +183,10 @@ const SENT_ECHO_GRACE_MS = 5_000;
 // Burst window for post-keypress revalidation (see scheduleKeyRevalidate).
 const KEY_REVALIDATE_MS = 300;
 
+function carriesFiles(e: ReactDragEvent<HTMLElement>): boolean {
+  return Array.from(e.dataTransfer.types).includes("Files");
+}
+
 // Shared in-flow dock chrome for Keys/Quick — an IN-FLOW panel (never an overlay), so the terminal
 // mirror's flex-1 box shrinks and its tail stays visible while the dock is open (a covering sheet
 // hid exactly the prompt you were driving). Full-bleed top border + capped height keep the mirror
@@ -338,6 +342,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   }, [scope, scopeId, paneId]);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const uploadingRef = useRef(false);
+  const [draggingImage, setDraggingImage] = useState(false);
   // Pending-send preview: set on a successful send, cleared when the mirror catches up (next text
   // update) or after a 6s safety timeout. Shows "You sent: …" so the user knows the message landed.
   const [lastSent, setLastSent] = useState<string | null>(null);
@@ -926,9 +932,12 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   }
 
   // Upload an image; on success append its host path to the composer so the user can add context.
-  // Shared by the file picker and clipboard paste.
+  // Shared by the file picker, clipboard paste, and desktop drag-and-drop. The ref closes the gap
+  // before React renders `uploading=true`: two drops in that gap must not start parallel uploads and
+  // race their paths into the draft.
   async function uploadImage(file: File) {
-    if (locked) return;
+    if (locked || direct.active || uploadingRef.current) return;
+    uploadingRef.current = true;
     setUploading(true);
     try {
       const res = await api.uploadImage(paneId, file, scope);
@@ -944,6 +953,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     } catch (err) {
       setStatus(describeThrownError(err), "error");
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
     }
   }
@@ -959,7 +969,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // Only intercepts when the clipboard actually carries an image file — a plain text paste (the
   // common case) falls through untouched.
   function onPasteImage(e: ClipboardEvent<HTMLTextAreaElement>) {
-    if (locked || direct.active) return;
+    if (locked || direct.active || uploadingRef.current) return;
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -972,6 +982,34 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         }
       }
     }
+  }
+
+  function onImageDragEnter(e: ReactDragEvent<HTMLDivElement>) {
+    if (!carriesFiles(e)) return;
+    e.preventDefault();
+    if (!locked && !direct.active && !uploadingRef.current) setDraggingImage(true);
+  }
+
+  function onImageDragOver(e: ReactDragEvent<HTMLDivElement>) {
+    if (!carriesFiles(e)) return;
+    e.preventDefault(); // without this, the browser opens the dropped file instead of firing drop
+    e.dataTransfer.dropEffect = locked || direct.active || uploadingRef.current ? "none" : "copy";
+  }
+
+  function onImageDragLeave(e: ReactDragEvent<HTMLDivElement>) {
+    const next = e.relatedTarget;
+    // Moving between the textarea, attach button, and overlay is still inside the same drop zone.
+    if (next instanceof Node && e.currentTarget.contains(next)) return;
+    setDraggingImage(false);
+  }
+
+  function onDropImage(e: ReactDragEvent<HTMLDivElement>) {
+    if (!carriesFiles(e)) return; // keep ordinary text drag-and-drop behaving like a textarea
+    e.preventDefault();
+    setDraggingImage(false);
+    if (locked || direct.active || uploadingRef.current) return;
+    const file = e.dataTransfer.files[0];
+    if (file) void uploadImage(file); // the bridge sniffs bytes and reports unsupported formats
   }
 
   return (
@@ -1385,7 +1423,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               field's right edge — and it cost 60px of typing width on a pack, out of the widest part
               of the composer. It answers the same question from the controls row above (the status
               strip there), which is equally at the write surface and costs the draft nothing. */}
-          <div className="relative min-w-0 flex-1">
+          <div
+            className="relative min-w-0 flex-1"
+            onDragEnter={onImageDragEnter}
+            onDragOver={onImageDragOver}
+            onDragLeave={onImageDragLeave}
+            onDrop={onDropImage}
+          >
           <ChatInput
             ref={inputRef}
             value={direct.active ? direct.value : input}
@@ -1459,6 +1503,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             disabled={locked}
             rows={1}
           />
+            {draggingImage && (
+              <div
+                className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-background/90 text-sm font-medium text-primary"
+                role="status"
+              >
+                {translate("composer.upload.drop")}
+              </div>
+            )}
             <Button
               type="button"
               variant="ghost"

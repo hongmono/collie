@@ -229,6 +229,7 @@ export const es: Dictionary = {
   "composer.destructive.confirmOnHost":
     "Acción destructiva: {reason} en {host}. Pulsa Enviar de nuevo para confirmar.",
   "composer.upload.success": "Imagen adjunta. Ruta insertada en el mensaje.",
+  "composer.upload.drop": "Suelta la imagen para adjuntarla",
   "composer.noEcho.title": "Solicitud de contraseña: sin eco en terminal",
   "composer.noEcho.noLiveTyped":
     "El texto introducido está en el panel sin enviar. Esta vista no está en vivo y no permite enviar datos; responde directamente en la terminal.",

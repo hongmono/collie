@@ -2162,6 +2162,72 @@ describe("Composer — clipboard image paste", () => {
   });
 });
 
+describe("Composer — image drag and drop", () => {
+  const dragData = (files: File[]) => ({
+    dataTransfer: {
+      files,
+      items: files.map((file) => ({ kind: "file", type: file.type, getAsFile: () => file })),
+      types: ["Files"],
+      dropEffect: "none",
+    },
+  });
+
+  it("shows a drop target, uploads the dropped image, and appends its path", async () => {
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/upload$/, () => HttpResponse.json({ ok: true, path: "/tmp/dropped.png" })),
+    );
+    renderComposer();
+    const box = screen.getByPlaceholderText(/type a reply/i);
+    const zone = box.parentElement!;
+    const file = new File(["x"], "dropped.png", { type: "image/png" });
+    const data = dragData([file]);
+
+    fireEvent.dragEnter(zone, data);
+    expect(screen.getByRole("status")).toHaveTextContent("Drop image to attach");
+
+    fireEvent.dragOver(zone, data);
+    expect(data.dataTransfer.dropEffect).toBe("copy");
+
+    fireEvent.drop(zone, data);
+    expect(screen.queryByText("Drop image to attach")).not.toBeInTheDocument();
+    await waitFor(() => expect(box).toHaveValue("/tmp/dropped.png"));
+  });
+
+  it("does not intercept an ordinary text drag", () => {
+    renderComposer();
+    const box = screen.getByPlaceholderText(/type a reply/i);
+    const data = {
+      dataTransfer: { files: [], items: [], types: ["text/plain"], dropEffect: "none" },
+    };
+
+    expect(fireEvent.dragOver(box.parentElement!, data)).toBe(true);
+    expect(screen.queryByText("Drop image to attach")).not.toBeInTheDocument();
+  });
+
+  it("accepts only the first drop while an upload is in flight", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let uploads = 0;
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/upload$/, async () => {
+        uploads += 1;
+        await gate;
+        return HttpResponse.json({ ok: true, path: "/tmp/first.png" });
+      }),
+    );
+    renderComposer();
+    const box = screen.getByPlaceholderText(/type a reply/i);
+    const zone = box.parentElement!;
+
+    fireEvent.drop(zone, dragData([new File(["1"], "first.png", { type: "image/png" })]));
+    fireEvent.drop(zone, dragData([new File(["2"], "second.png", { type: "image/png" })]));
+
+    await waitFor(() => expect(uploads).toBe(1));
+    release();
+    await waitFor(() => expect(box).toHaveValue("/tmp/first.png"));
+  });
+});
+
 describe("Composer — keys dock (in-flow, not an overlay)", () => {
   it("tapping Keys docks the NavTray in the normal flow (no fixed overlay) and toggles it closed", async () => {
     const user = userEvent.setup();
