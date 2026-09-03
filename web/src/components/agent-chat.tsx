@@ -28,7 +28,7 @@ import { setStripsCollapsed, useStripsCollapsed } from "@/lib/strips-collapsed";
 import { ChatMessageList, type ChatMessageListHandle } from "@/components/ui/chat/chat-message-list";
 import { BottomSheet } from "@/components/ui/sheet";
 import { Collapse, CollapseSwap } from "@/components/ui/collapse";
-import { RouteHeader } from "@/components/app-header";
+import { ArtifactsButton, RouteHeader } from "@/components/app-header";
 import { AnsiOutput } from "@/components/ansi-output";
 import { MIRROR_SPACE, MIRROR_INVERT, styleFor } from "@/components/mirror-space";
 import { cn } from "@/lib/utils";
@@ -1135,6 +1135,7 @@ export function AgentChat({
               </button>
             ) : undefined
           }
+          rightTrail={agent ? <ArtifactsButton scope={scope} spaceId={agent.workspaceId} paneId={paneId} /> : undefined}
         >
           {/* Title block: the agent's brand logo and the space › tab share line 1 (the agent name
               would just repeat the icon, so it's dropped), and the working directory has line 2 to

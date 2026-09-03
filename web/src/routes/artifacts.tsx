@@ -5,7 +5,7 @@ import { RouteHeader } from "@/components/app-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ArtifactsData } from "@/lib/loaders";
-import { homePath, spacePath } from "@/lib/nav";
+import { homePath, panePath, spacePath } from "@/lib/nav";
 import { useScope } from "@/lib/session";
 import type { ArtifactRecord } from "@/lib/types";
 import { t } from "@/lib/i18n";
@@ -57,13 +57,14 @@ export function ArtifactsRoute() {
   const scope = useScope();
   useLocale();
   const spaceId = params.get("space") ?? undefined;
+  const paneId = params.get("pane") ?? undefined;
   const groups = dateGroups(data.artifacts);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col">
       <RouteHeader
         override={
           <>
-            <Button variant="ghost" size="icon" className="size-11" onClick={() => navigate(spaceId ? spacePath(spaceId, scope) : homePath(scope))} aria-label={t("settings.nav.back")}>
+            <Button variant="ghost" size="icon" className="size-11" onClick={() => navigate(paneId ? panePath(paneId, scope) : spaceId ? spacePath(spaceId, scope) : homePath(scope))} aria-label={t("settings.nav.back")}>
               <ArrowLeft className="size-5" />
             </Button>
             <h1 className="text-lg font-semibold tracking-tight">{t("artifacts.title")}</h1>
