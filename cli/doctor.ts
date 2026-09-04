@@ -189,6 +189,7 @@ export async function cmdDoctor(deps: DoctorDeps, args: readonly string[]): Prom
       exec: deps.exec,
       files: deps.files,
       snapshot: () => ownSnapshot(deps),
+      localHost: data?.self.memberId,
     })),
     restartPending(install),
     clock(inPack, probes),

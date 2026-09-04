@@ -220,6 +220,29 @@ describe("the history section", () => {
     expect(good.get("agent-sessions")?.status).toBe("ok");
   });
 
+  test("a pack lead diagnoses only its own panes from a merged snapshot", async () => {
+    const findings = await historyFindings({
+      ctx: context({}),
+      exec: fakeExec({
+        answers: [
+          ["herdr --version", { stdout: "herdr 0.8.2\n" }],
+          ["herdr integration status", { stdout: HEALTHY_STATUS }],
+        ],
+      }),
+      files: fakeFiles({ [`${CLAUDE_ROOT}/-home-pat-repo/9f3c.jsonl`]: "{}" }),
+      localHost: "lead",
+      snapshot: async () =>
+        JSON.stringify({
+          bridge: "connected",
+          agents: [
+            { paneId: "w1:p1", agent: "codex", kind: "agent", hasSession: true, host: "lead" },
+            { paneId: "w2:p1", agent: "codex", kind: "agent", host: "peer" },
+          ],
+        }),
+    });
+    expect(new Map(findings.map((f) => [f.check, f])).get("agent-sessions")?.status).toBe("ok");
+  });
+
   test("a bridge that does not answer is `skipped`, never a pass — and takes nothing else down", async () => {
     const byCheck = await run({ snapshot: null });
     expect(byCheck.get("agent-sessions")?.status).toBe("skipped");

@@ -80,6 +80,7 @@ export interface SnapshotPane {
   readonly paneId: string;
   readonly agent: string;
   readonly hasSession: boolean;
+  host?: string;
 }
 
 /** What one agent pane's `hasSession` means for its History link. */
@@ -92,7 +93,7 @@ export interface PaneVerdict {
 /** The wire shape, every field optional: an answer that disagrees must degrade, never be trusted. */
 interface SnapshotWire {
   bridge?: string;
-  agents?: { paneId?: string; agent?: string; kind?: string; hasSession?: boolean }[];
+  agents?: { paneId?: string; agent?: string; kind?: string; hasSession?: boolean; host?: string }[];
 }
 
 /**
@@ -118,7 +119,9 @@ export function parseSnapshotPanes(text: string): SnapshotPane[] | null {
     const paneId = pane.paneId ?? "";
     const agent = pane.agent ?? "";
     if (paneId === "" || agent === "") continue;
-    panes.push({ paneId, agent, hasSession: pane.hasSession === true });
+    const snapshotPane: SnapshotPane = { paneId, agent, hasSession: pane.hasSession === true };
+    if (pane.host !== undefined) snapshotPane.host = pane.host;
+    panes.push(snapshotPane);
   }
   return panes;
 }
@@ -172,6 +175,8 @@ export interface HistoryDeps {
   readonly files: Pick<Files, "exists" | "list">;
   /** The bridge's own `/api/snapshot`, as text — `null` when nothing answered there. */
   readonly snapshot: () => Promise<string | null>;
+  /** In a merged pack snapshot, diagnose only panes owned by this Collie. */
+  readonly localHost?: string;
 }
 
 const INSTALL_NOTE = "then start a new session of that agent in the pane (hooks load at session start)";
@@ -181,7 +186,11 @@ export async function historyFindings(deps: HistoryDeps): Promise<Finding[]> {
   const herdr = herdrVersion(deps);
   const status = integrationStatus(deps);
   const body = await deps.snapshot();
-  const panes = body === null ? null : parseSnapshotPanes(body);
+  const parsed = body === null ? null : parseSnapshotPanes(body);
+  const panes =
+    parsed === null || deps.localHost === undefined
+      ? parsed
+      : parsed.filter((pane) => pane.host === undefined || pane.host === deps.localHost);
   const verdicts = panes === null ? null : paneVerdicts(panes);
   return [
     herdr,
