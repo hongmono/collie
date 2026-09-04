@@ -25,9 +25,11 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-6] - 2026-09-04
+
 ### Fixed
 
-- CLI integration coverage follows the current v2 beacon hook marker.
+- CLI integration coverage follows the current v2 beacon hook marker. ([9319b15](https://github.com/hongmono/collie/commit/9319b15))
 
 ## [1.5.0-5] - 2026-09-04
 
