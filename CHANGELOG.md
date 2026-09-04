@@ -11,15 +11,17 @@ and `web/package.json` (enforced by `scripts/check-version.sh`). See
 
 ## Upgrading
 
+**Already on 1.x?** Run `collie update`, or run
+`herdr plugin action invoke update --plugin herdr.collie`. Check the result with
+`bin/collie version` (or `herdr plugin action invoke version --plugin herdr.collie`). It shows the
+newest tag. The phone PWA updates itself within about a minute; no reload needed.
+
 **Coming from 0.x?** Upgrade with one command. Do not use `collie update`. From the Herdr
 plugin: `herdr plugin action invoke update-major --plugin herdr.collie`. From a checkout you can
 reach: `bin/collie update --major`. Fresh install:
 `curl -fsSL https://colliepwa.dev/install.sh | sh`. Neither upgrade path assumes a `collie` on your
 PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgrading from 0.x to
 1.0*.
-
-**Already on any 1.x?** `collie update`, or
-`herdr plugin action invoke update --plugin herdr.collie`, is enough.
 
 ## [Unreleased]
 
@@ -33,6 +35,12 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - Artifacts record their actual Herdr workspace ID and the gallery supports space filtering, date groups, compact responsive cards, and non-scrolling previews.
 - Pane conversations link directly to the Artifact gallery filtered to their owning Herdr space.
 - Pane headers keep the overflow menu as the rightmost action.
+
+## [1.5.0-1] - 2026-09-04
+
+### Changed
+
+- Synced the downstream build with upstream Collie 1.5.0.
 
 ## [1.2.0-3] - 2026-09-03
 
@@ -59,6 +67,89 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 ### Fixed
 
 - Codex replies containing explicit blank paragraph rows are verified and submitted without weakening the fail-closed composer guard. ([f0b4431](https://github.com/hongmono/collie/commit/f0b4431))
+## [1.5.0] - 2026-09-04
+
+### Added
+
+- One confirm on the phone updates a whole pack: the lead first under its own health gate, then each peer, one at a time. ([e4d12af](https://github.com/AltanS/collie/commit/e4d12af))
+- Updates page at `/settings/updates`: the check, the update card, a read-only line per pack member, and one action button. ([9ab65bc](https://github.com/AltanS/collie/commit/9ab65bc))
+- One top-of-app update band, replacing the self-update row: release on offer, confirm just tapped, run in flight, new bridge, and peers following. ([ff4bf25](https://github.com/AltanS/collie/commit/ff4bf25))
+- A peer follows its lead: it levels itself to the release its lead is running, taking the exact tag from GitHub over anonymous HTTPS, behind its own preflight, health gate and rollback. The lead grants one turn at a time and states nothing while it is mid-run. ([0f8c337](https://github.com/AltanS/collie/commit/0f8c337))
+- Every pack member reports its own update preflight over the link, and `GET /api/update/check` answers with a dated `pack` row per member. ([4667c8a](https://github.com/AltanS/collie/commit/4667c8a))
+- The Updates page and the band report each peer's leg of a pack-wide run: waiting, updating, updated, rolled back or unreachable. ([07d305e](https://github.com/AltanS/collie/commit/07d305e))
+- `POST /api/update` accepts `peersOnly: true`, the Updates page's "Retry pack update": a new run whose only legs are the peers. ([bbfa7c1](https://github.com/AltanS/collie/commit/bbfa7c1))
+- `collie update --to-tag v<x.y.z>` pins an update to one exact release; it refuses a prerelease, a downgrade and a major crossing. Plumbing, not an operator verb. ([7c42d2f](https://github.com/AltanS/collie/commit/7c42d2f))
+- `collie pack update` prints each member's peer-reported verdict beside its SSH one and names a disagreement. ([9913b5a](https://github.com/AltanS/collie/commit/9913b5a))
+- Known gap: a lead rolled back by hand after its peers have levelled leaves them ahead of it. No peer is ever stepped down over the pack link; the remedy is `collie pack update <member>` from the lead. ([f61a246](https://github.com/AltanS/collie/commit/f61a246))
+
+### Changed
+
+- Settings keeps one "Updates" row with a status line and a chevron; the footer update chip and the update card left the page. ([9ab65bc](https://github.com/AltanS/collie/commit/9ab65bc))
+- An update push now opens the Updates page. The wire value is unchanged, so an old service worker still lands on Settings. ([9ab65bc](https://github.com/AltanS/collie/commit/9ab65bc))
+- The snapshot and `GET /api/update/check` compose the update status from one place, so the band and the Updates page can never disagree about a run. ([dcaa51d](https://github.com/AltanS/collie/commit/dcaa51d))
+
+### Fixed
+
+- Pane detail: dragging the status line strip above the switcher handle no longer scrolls the composer out of view. ([7b77d7c](https://github.com/AltanS/collie/commit/7b77d7c))
+- Tapping a push notification opens the app again on Android; the tap no longer waits on a discarded tab before it may open a window (regression since 1.2.0). ([ecee7c2](https://github.com/AltanS/collie/commit/ecee7c2))
+- Every pack member reports its running version on the sweep, so the lead no longer shows a peer's version as blank and a peer that finished updating is marked done and hands on its turn. ([94308d9](https://github.com/AltanS/collie/commit/94308d9))
+
+## [1.4.1] - 2026-09-03
+
+### Changed
+
+- Update card says "Up to date. Nothing to do." at the top and folds the preflight details unless a check is red or an update is available. ([235ab1b](https://github.com/AltanS/collie/commit/235ab1b))
+
+### Fixed
+
+- The phone's update preflight checks this instance only (`update --check --local`), so an unreachable pack peer no longer turns the lead's card red. ([fd4be21](https://github.com/AltanS/collie/commit/fd4be21))
+- The preflight lists release tags over anonymous HTTPS when `origin` is a GitHub SSH URL, and quotes git's own error, so a missing SSH agent no longer reads as a dead remote. ([fd4be21](https://github.com/AltanS/collie/commit/fd4be21))
+- The update card no longer says "the newest release isn't known yet" right after a restart, its first read now waits briefly for the delayed startup poll instead of answering with a stale null. ([203dd07](https://github.com/AltanS/collie/commit/203dd07))
+
+## [1.4.0] - 2026-09-03
+
+### Changed
+
+- A launcher's `cwd` is optional: pin one and it wins everywhere, leave it out and it means "here", your home dir from the dashboard, that pane's own folder from the switcher. ([7efad18](https://github.com/AltanS/collie/commit/7efad18))
+- Tapped from a pane, a launcher opens a tab beside it instead of a new Space; tapped from the dashboard, a Space, as before. ([7efad18](https://github.com/AltanS/collie/commit/7efad18))
+- Launcher rows read live per host, so on a pack they come from the machine whose row you tapped, never the lead's own file. ([7efad18](https://github.com/AltanS/collie/commit/7efad18))
+- The "Switch pane" sheet rises from its handle and follows the thumb as you drag, instead of appearing at the screen's bottom edge only on release, and it opens with a haptic tick. ([5bfa631](https://github.com/AltanS/collie/commit/5bfa631))
+- On the pane screen a status now shows in the header title instead of floating over the tab strip's own controls. ([5bfa631](https://github.com/AltanS/collie/commit/5bfa631))
+- `collie pack update` is one sequence: preflight every machine, update the lead first, then each peer in turn, health-gated. The first failure stops the run and leaves the rest untouched, with the recovery command named. ([fa57012](https://github.com/AltanS/collie/commit/fa57012))
+- `collie update` stages, then hands the swap to a detached updater: it flips `current`, restarts, polls `/api/health` for 30 s (`COLLIE_UPDATE_HEALTH_TIMEOUT_MS`), and rolls back once by itself if the new version does not answer. Watch it with `collie update --status`. ([d569ffc](https://github.com/AltanS/collie/commit/d569ffc))
+- A linked checkout updates by staging: `collie update` builds a release into a `versions/vX.Y.Z` git worktree and flips the `current` symlink, so a failed build never touches the running install and `collie update --rollback` works on a checkout (ADR 0006, amended) ([7845c87](https://github.com/AltanS/collie/commit/7845c87))
+- Update notifications are a digest: at most one push a day, naming every release it folded, never before 09:00. A patch-only delta rides a weekly digest instead, or a minor that arrives first. ([f05b4de](https://github.com/AltanS/collie/commit/f05b4de))
+
+### Added
+
+- Operator launchers: your own commands, declared in `launchers.toml`, tapped to start. They live on the dashboard and in the "Switch pane" sheet, not in a pane or Space header. (#125) ([12dd5e8](https://github.com/AltanS/collie/commit/12dd5e8))
+- Update Collie from the phone: a settings card with the version, the newest release, the preflight per check and its state, behind `POST /api/update`: same gate as a send, one confirm, and its own confirm for a major. ([3f4caf9](https://github.com/AltanS/collie/commit/3f4caf9))
+- `POST /api/update/snooze` dismisses the current update digest until a newer release and a fresh window. ([f05b4de](https://github.com/AltanS/collie/commit/f05b4de))
+- `collie update --check [--json]`, a read-only preflight over doctor, disk, bun, the tracked-file tree, upstream and the service unit, plus every pack member on a lead. ([8c9e5d4](https://github.com/AltanS/collie/commit/8c9e5d4))
+
+### Fixed
+
+- `pack update --path '~/…'` expands the tilde on the remote's own `$HOME`, not this machine's. ([f05b4de](https://github.com/AltanS/collie/commit/f05b4de))
+- `pack update --host` remembers the ssh route as soon as the probe proves it, not only after a
+  fully successful run. ([f05b4de](https://github.com/AltanS/collie/commit/f05b4de))
+- `bun run test` no longer exits 0 when a test fails: a probe script called process.exit on import. ([b2a86cf](https://github.com/AltanS/collie/commit/b2a86cf))
+- `collie update --check` no longer turns red, and the phone's Update button no longer disables, on a lead whose peer has no ssh record: that fact still shows red on the member, but updating the lead needs no route to a peer, so the top verdict is amber. ([08c0b0b](https://github.com/AltanS/collie/commit/08c0b0b))
+- A table in the mirror pans in its own scroller while the prose around it keeps wrapping, so Wrap no longer has to be turned off to read one. A box-drawn table pans as one unit; a framed row outside a table still does not wrap. (#5, #158) ([8d079ff](https://github.com/AltanS/collie/commit/8d079ff))
+- Codex on a phone: submitted-message rows no longer render as solid black bars in the light theme, and a labelled `─ Worked for … ───` separator stays on one line. (#144) ([0104d27](https://github.com/AltanS/collie/commit/0104d27))
+- The new-tab and new-Space controls show a spinner and ignore a second tap while the create is in flight; the pane list catches up within a poll burst after any create or close. ([d03ccd7](https://github.com/AltanS/collie/commit/d03ccd7))
+
+## [1.3.0] - 2026-09-03
+
+### Changed
+
+- Mirror polling follows what you do: 300ms bursts after a key or a message while the screen keeps changing, 1.5s while you follow a working agent, 4s on the home screen while an agent works, 6s when nothing says you are watching (#156) ([d2cb8a3](https://github.com/AltanS/collie/commit/d2cb8a3))
+
+### Fixed
+
+- Mirror no longer freezes when the soft keyboard or Keys dock shrinks the pane: a scroll that arrives with a changed container height is layout, not the user leaving the bottom (#155) ([1862276](https://github.com/AltanS/collie/commit/1862276))
+- Boxed TUI rows (a `/model` picker, a panel border) stay on one line on a narrow phone mirror instead of wrapping into a scrambled frame; `tree` output and prose still wrap, thanks @alexlee2046 (#156) ([d7a4276](https://github.com/AltanS/collie/commit/d7a4276))
+- Releases publish a linux-arm64 build, so a Raspberry Pi installs instead of 404ing; the from-source docs call the bootstrap script with bash, which it is (#157) ([64c7d7e](https://github.com/AltanS/collie/commit/64c7d7e))
+- Pairing no longer logs `could not stamp lastSeenAt: ENOENT` once a minute: concurrent stamps from one poll tick raced on a shared temp file; writes are serialized and temp names are unique now (#159) ([d4bd3f9](https://github.com/AltanS/collie/commit/d4bd3f9))
 
 ## [1.2.0] - 2026-09-02
 

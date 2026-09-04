@@ -280,6 +280,11 @@ lint guard or the pack-wire guard.
   reader, same mtime liveness; the opposite posture, because a font cannot fire an action and so
   shadows nothing ([ADR 0033](./.adr/0033-the-app-face-is-a-device-preference.md)). Don't dilute
   ADR 0018's replace-law to cover it.
+- **`launchers.toml` is the operator's fifth file, and the only one whose rows CREATE a pane** — its
+  rows are the allowlist `POST /api/launch` matches exactly, so the client names a row and never
+  supplies a command line. Same reader, same mtime liveness; no scope ladder, because a row that
+  makes its own pane has nothing to address. Do not add a second allowlist and do not let the client
+  supply a command line.
 - **Every user-facing string goes through `t()`/`tn()` from `@/lib/i18n`**, and a component that
   calls them subscribes via `useLocale()` so it re-renders on a locale (or lazy-dictionary) change.
   `messages/en.ts` is the source of truth; all six dictionary files change together, enforced by
@@ -324,6 +329,12 @@ lint guard or the pack-wire guard.
   terminal frames or keep a controller alive
   ([ADR 0008](./.adr/0008-collie-does-not-run-a-terminal-emulator.md),
   [ADR 0035](./.adr/0035-the-last-active-device-sizes-the-shared-pty.md)).
+- **A table pans; the mirror around it keeps wrapping** — `lib/table-run.ts` groups a table's rows
+  into a single scroller inside the wrapping `<pre>` (`ansi-output.tsx`). One scroller per table,
+  never one per row. Each grammar anchors on a row nothing else prints — a markdown delimiter row,
+  a `+---+` rule, a frame row carrying a **cross** — and then grows by agreement, so a menu, a
+  chrome box or a rule beside a table is never claimed. `table-run.test.ts` gates it against every
+  capture in `fixtures/panes`; the argument sits in `table-run.ts`'s header.
 - **Never use a `dark:` variant inside the mirror `<pre>`** — it tracks the root theme, which is
   backwards in a surface that renders dark under every theme and inverts in light
   ([ADR 0002](./.adr/0002-invert-the-light-terminal-mirror.md)). Fails silently;
@@ -437,6 +448,8 @@ the pre-commit hook; a pure refactor takes the `SKIP_PACK_WIRE_CHECK=1` hatch
 **Code reaches a peer over the operator's own SSH, never over the pack link** — `pack add` installs
 it and `pack update` levels it, both pushing the lead's own commit as a `git bundle`; the link
 carries runtime data and never becomes a distribution channel
-([ADR 0016](./.adr/0016-updates-ride-the-operators-ssh.md)). How the operator reached a member is
-remembered locally in `pack-ops.json`, which is never a wire field and never merged into the trust
+([ADR 0016](./.adr/0016-updates-ride-the-operators-ssh.md), addendum 2026-09-04: a peer may also
+level ITSELF to the release its lead is running, fetching that public tag from GitHub over anonymous
+HTTPS on its own decision, which adds no code, route or verb to the link). How the operator
+reached a member is remembered locally in `pack-ops.json`, which is never a wire field and never merged into the trust
 store.
