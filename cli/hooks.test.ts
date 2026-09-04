@@ -175,7 +175,15 @@ describe("the merge", () => {
     expect(hooks.Notification[0].matcher).toBe("idle_prompt");
     // A registration with no matcher writes no `matcher` key at all — not `null`, not `""`.
     expect(Object.keys(hooks.UserPromptSubmit[0])).toEqual(["hooks"]);
-    expect(hooks.Stop[0].hooks).toEqual([{ type: "command", command: COMMAND, timeout: 10 }]);
+    expect(hooks.Stop[0].hooks).toEqual([
+      { type: "command", command: COMMAND, timeout: 10 },
+      {
+        type: "command",
+        command: "/opt/collie/bin/collie artifact discover claude # collie-artifacts-hook v1",
+        timeout: 10,
+        async: true,
+      },
+    ]);
   });
 
   test("never clobbers an unmarked entry, and never reorders one", () => {
@@ -396,7 +404,7 @@ describe("status", () => {
     cmdHooksInstall(d, ["claude"]);
     const after = deps({ files: { [SETTINGS]: d.files.entries.get(SETTINGS)!.text } });
     cmdHooksStatus(after);
-    expect(after.io.stdout.join("\n")).toContain(`${SETTINGS}: installed (v1)`);
+    expect(after.io.stdout.join("\n")).toContain(`${SETTINGS}: installed (v2)`);
   });
 
   test("calls a file that carries only some of the events partly installed, and names the remedy", () => {
@@ -407,7 +415,7 @@ describe("status", () => {
     const d = deps({ files: { [SETTINGS]: serializeSettings(document) } });
     cmdHooksStatus(d);
     const said = d.io.stdout.join("\n");
-    expect(said).toContain(`partly installed (v1, ${older.length}/${BEACON_HOOKS.length} events)`);
+    expect(said).toContain(`partly installed (v2, ${older.length}/${BEACON_HOOKS.length} events)`);
     expect(said).toContain("re-run install to add the rest");
   });
 

@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { createArtifact, listArtifacts } from "../bridge/artifacts.ts";
+import type { JsonObject, JsonValue } from "../bridge/json.ts";
 import { HerdrClient } from "../bridge/mux/herdr/client.ts";
 import type { CliContext } from "./context.ts";
 import { EXIT, type Io } from "./io.ts";
@@ -15,6 +16,7 @@ export interface ArtifactDeps {
 const POLICY = `When you create a user-facing artifact such as an HTML preview, diagram, image, long report, table, dataset, dashboard, or downloadable file, publish it by running:\n\ncollie artifact publish <path> --title "<descriptive title>"\n\nDecide this yourself; do not wait for the user to ask. Do not publish source files, secrets, temporary files, dependency trees, or ordinary short textual answers. After publishing, include the artifact title in your final response.`;
 const START = "<!-- collie-artifacts:start -->";
 const END = "<!-- collie-artifacts:end -->";
+const CODEX_HOOK_MARKER = "# collie-artifacts-hook v1";
 
 export function mergeArtifactPolicy(existing: string): string {
   const block = `${START}\n## Collie artifacts\n\n${POLICY}\n${END}`;
@@ -23,6 +25,52 @@ export function mergeArtifactPolicy(existing: string): string {
   if (from >= 0 && to >= from) return `${existing.slice(0, from)}${block}${existing.slice(to + END.length)}`;
   const prefix = existing.trimEnd();
   return `${prefix}${prefix ? "\n\n" : ""}${block}\n`;
+}
+
+function object(value: JsonValue | undefined): JsonObject | null {
+  return value instanceof Object && !Array.isArray(value) ? value : null;
+}
+
+export function mergeCodexArtifactHook(existing: JsonValue, binary: string): JsonObject {
+  const root = object(existing);
+  if (root === null) throw new Error("Codex hooks file is not a JSON object");
+  const hooks = root.hooks === undefined ? {} : object(root.hooks);
+  if (hooks === null) throw new Error("Codex hooks section is not a JSON object");
+  if (hooks.Stop !== undefined && !Array.isArray(hooks.Stop)) {
+    throw new Error("Codex Stop hooks are not a JSON array");
+  }
+  const stop = Array.isArray(hooks.Stop) ? hooks.Stop : [];
+  const owned = (group: JsonValue): boolean => JSON.stringify(group).includes(CODEX_HOOK_MARKER);
+  const ours = {
+    hooks: [{
+      type: "command",
+      command: `${binary} artifact discover codex ${CODEX_HOOK_MARKER}`,
+      timeout: 10,
+      async: true,
+    }],
+  };
+  const at = stop.findIndex(owned);
+  const merged = at < 0 ? [...stop, ours] : stop.map((group, index) => index === at ? ours : group);
+  return { ...root, hooks: { ...hooks, Stop: merged } };
+}
+
+function installCodexHook(deps: ArtifactDeps, binary: string): void {
+  const path = join(deps.ctx.home, ".codex", "hooks.json");
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error(`${path} is a symlink`);
+  const previous = existsSync(path) ? readFileSync(path, "utf8") : "";
+  // SAFETY: JSON.parse yields a JSON value, which mergeCodexArtifactHook traverses only through the
+  // JsonValue-aware object/array gates above.
+  const parsed = (previous.trim() === "" ? {} : JSON.parse(previous)) as JsonValue;
+  const next = `${JSON.stringify(mergeCodexArtifactHook(parsed, binary), null, 2)}\n`;
+  if (next === previous) return;
+  if (previous !== "" && !existsSync(`${path}.collie-backup`)) {
+    writeFileSync(`${path}.collie-backup`, previous, { mode: 0o600 });
+  }
+  const temp = `${path}.collie-tmp`;
+  writeFileSync(temp, next, { mode: 0o600 });
+  renameSync(temp, path);
+  deps.io.out(`installed artifact hook: ${path}`);
 }
 
 function usage(deps: ArtifactDeps): number {
@@ -41,6 +89,9 @@ function setup(deps: ArtifactDeps): number {
     writeFileSync(path, mergeArtifactPolicy(current).replaceAll("collie artifact", `${binary} artifact`), { mode: 0o600 });
     deps.io.out(`installed artifact policy: ${path}`);
   }
+  installCodexHook(deps, binary);
+  deps.io.out("Codex: open `/hooks` once to review and trust the installed hook.");
+  deps.io.out("Claude: run `collie hooks install claude` to add artifact discovery to Stop.");
   return EXIT.OK;
 }
 
@@ -66,7 +117,15 @@ export async function cmdArtifact(deps: ArtifactDeps, args: readonly string[]): 
         return null;
       }
     });
-    const record = createArtifact(deps.ctx.stateDir, resolve(source), title, process.cwd(), await currentSpace());
+    const record = createArtifact(
+      deps.ctx.stateDir,
+      resolve(source),
+      title,
+      process.cwd(),
+      await currentSpace(),
+      deps.ctx.env.CODEX_SESSION_ID ?? null,
+      deps.ctx.env.HERDR_PANE_ID ?? null,
+    );
     deps.io.out(`artifact published: ${record.title}`);
     deps.io.out(`  ${record.id}`);
     return EXIT.OK;

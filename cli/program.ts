@@ -2,6 +2,7 @@ import { Command as Program, CommanderError } from "commander";
 
 import { type BeaconEmitDeps, runBeaconEmit } from "./beacon.ts";
 import { cmdArtifact } from "./artifact.ts";
+import { cmdArtifactDiscover } from "./artifact-discovery.ts";
 import { cmdBuild } from "./build.ts";
 import { collieVersion, loadContext } from "./context.ts";
 import {
@@ -212,6 +213,10 @@ function artifactDeps(io: Io) {
   return { ctx: loadContext(io.err), io };
 }
 
+function artifactDiscoverDeps() {
+  return { ctx: loadContext(() => {}), readStdin: () => Bun.stdin.text() };
+}
+
 /**
  * `stt`: the pairing set (context + filesystem — `stt.json` lives beside the pairing files, under the
  * state dir the bridge resolves), plus `exec` to locate the operator's `codex` binary and the two
@@ -413,6 +418,19 @@ export const COMMANDS: readonly Command[] = [
   {
     name: "artifact",
     summary: "publish agent-created previews, reports and downloads to Collie",
+    subcommands: [
+      {
+        name: "discover",
+        summary: "internal: discover artifacts from an agent Stop hook",
+        run: async (args, s) => {
+          const result = await cmdArtifactDiscover(artifactDiscoverDeps());
+          // Codex Stop hooks require JSON on stdout; an empty object is the neutral response. Claude
+          // receives no output, so its Stop hook cannot inject accidental context into the turn.
+          if (args[0] === "codex") s.io.out("{}");
+          return result;
+        },
+      },
+    ],
     run: (args, s) => cmdArtifact(artifactDeps(s.io), args),
   },
   {

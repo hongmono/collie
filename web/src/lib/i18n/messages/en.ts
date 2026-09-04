@@ -26,6 +26,7 @@ export const en = {
   "artifacts.empty.body": "Agent-created previews, reports, images and downloads will appear here.",
   "artifacts.open": "Open",
   "artifacts.download": "Download",
+  "artifacts.conversation": "Chat",
   "artifacts.status.hosted": "hosted",
 
   // --- settings.theme ---

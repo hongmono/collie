@@ -241,6 +241,7 @@ describe("the subcommand trees", () => {
   test("no other verb declares a tree — the grammar is one level deep everywhere else", () => {
     expect(COMMANDS.filter((c) => c.subcommands !== undefined).map((c) => c.name)).toEqual([
       "hooks",
+      "artifact",
       "beacon",
       "devices",
       "push",

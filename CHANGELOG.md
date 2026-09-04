@@ -25,6 +25,16 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Added
+
+- Agent Stop hooks automatically publish mentioned files, Mermaid diagrams, tables, and long reports as session-linked artifacts.
+
+### Fixed
+
+- Codex replies with many blank lines no longer remain typed but unsubmitted.
+- Codex replies with Collie-uploaded images now verify their rendered image tokens and submit normally.
+- Pack member spaces now show and open their own tabs and panes when drilled into.
+
 ## [1.5.0-3] - 2026-09-04
 
 ### Changed

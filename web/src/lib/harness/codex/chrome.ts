@@ -31,13 +31,13 @@ export interface ComposerBox {
 // Claude. A run deeper than this is not a composer (fail closed — locateComposer returns null).
 const MAX_DRAFT_ROWS = 100;
 
-// An explicit newline inside the textarea paints an empty row. Two consecutive empty rows are the
-// common Markdown paragraph break (three `\n` bytes), and were the exact shape that made a verified
-// Collie reply strand its text without Enter: the walk below treated the first interior blank as the
-// end of the composer. Keep the allowance deliberately small. There is no cursor in `pane.read`, so
-// an unbounded blank walk could cross from a torn status row into an old transcript `›` echo and
-// authorise typing while the real composer was absent.
-const MAX_INTERNAL_BLANK_ROWS = 2;
+// An explicit newline inside the textarea paints an empty row. Operators routinely leave several
+// blank lines between sections of a long prompt, so the old allowance of two made Collie type the
+// message and then withhold Enter when verification could no longer locate the composer. Keep the
+// run bounded independently of MAX_DRAFT_ROWS: `pane.read` has no cursor, and an unbounded blank
+// walk could cross from a torn status row into an old transcript `›` echo and authorise typing while
+// the real composer was absent.
+const MAX_INTERNAL_BLANK_ROWS = 20;
 
 // A continuation row is the composer's TWO-SPACE GUTTER followed by the draft's own text — and
 // that text may ITSELF begin with spaces. Type two spaces mid-sentence, or let a soft wrap land

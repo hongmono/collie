@@ -16,6 +16,7 @@ export const ja: Dictionary = {
   "artifacts.empty.body": "エージェントが作成したプレビュー、レポート、画像、ダウンロードがここに表示されます。",
   "artifacts.open": "開く",
   "artifacts.download": "ダウンロード",
+  "artifacts.conversation": "会話",
   "artifacts.status.hosted": "公開済み",
 
   // --- settings.theme ---

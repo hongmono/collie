@@ -17,6 +17,7 @@ export const ko: Dictionary = {
   "artifacts.empty.body": "에이전트가 만든 미리보기, 보고서, 이미지와 다운로드 파일이 여기에 표시됩니다.",
   "artifacts.open": "열기",
   "artifacts.download": "다운로드",
+  "artifacts.conversation": "대화",
   "artifacts.status.hosted": "호스팅됨",
 
   // --- settings.theme ---

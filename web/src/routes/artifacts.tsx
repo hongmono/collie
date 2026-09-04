@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FileText, MessageSquare } from "lucide-react";
 import { useLoaderData, useNavigate, useSearchParams } from "react-router";
 
 import { RouteHeader } from "@/components/app-header";
@@ -91,6 +91,11 @@ export function ArtifactsRoute() {
                     <p className="truncate text-[11px] text-muted-foreground">{artifact.filename} · {formatBytes(artifact.size)}</p>
                   </div>
                   <div className="flex gap-1">
+                    {artifact.paneId && (
+                      <Button variant="ghost" size="sm" onClick={() => navigate(panePath(artifact.paneId!, scope))}>
+                        <MessageSquare className="size-3.5" /> {t("artifacts.conversation")}
+                      </Button>
+                    )}
                     <a className={buttonVariants({ variant: "outline", size: "sm" })} href={localUrl(artifact, scope)} target="_blank" rel="noreferrer"><ExternalLink className="size-3.5" /> {t("artifacts.open")}</a>
                     <a className={buttonVariants({ variant: "ghost", size: "sm" })} href={localUrl(artifact, scope)} download={artifact.filename}><Download className="size-3.5" /> {t("artifacts.download")}</a>
                   </div>

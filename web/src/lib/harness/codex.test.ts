@@ -273,15 +273,27 @@ describe("chrome", () => {
     );
   });
 
+  it("recognises a multiline draft with many blank lines", () => {
+    // This is the phone repro: pane.send_text lands the whole message, Codex paints every hard
+    // break, and the reply guard must still recognise the composer before it sends Enter.
+    const status = "  model x · /some/dir · Context 50% left";
+    const blankRows = Array.from({ length: 12 }, () => "");
+    const lines = splitLines(
+      parseAnsi(["› first section", ...blankRows, "  second section", "", status].join("\n")),
+    );
+
+    expect(locateComposer(lines)).not.toBeNull();
+    expect(codexAdapter.composerReady!(lines)).toBe(true);
+    expect(codexAdapter.extractInputDraft(lines)).toBe("first section second section");
+  });
+
   it("does not walk through an unbounded blank run to an old transcript echo", () => {
     const status = "  model x · /some/dir · Context 50% left";
     const lines = splitLines(
       parseAnsi(
         [
           "› an earlier submitted message",
-          "",
-          "",
-          "",
+          ...Array.from({ length: 21 }, () => ""),
           "  a torn continuation row",
           "",
           status,

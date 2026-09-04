@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { basename, join } from "node:path";
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 
@@ -13,10 +14,13 @@ export interface ArtifactRecord {
   createdAt: string;
   cwd: string;
   spaceId: string | null;
+  sessionId?: string | null;
+  paneId?: string | null;
+  contentHash?: string;
   status: "hosted";
 }
 
-export type ArtifactWire = Omit<ArtifactRecord, "cwd">;
+export type ArtifactWire = Omit<ArtifactRecord, "cwd" | "contentHash">;
 
 export function artifactForWire(record: ArtifactRecord): ArtifactWire {
   const wire: ArtifactWire = {
@@ -29,6 +33,8 @@ export function artifactForWire(record: ArtifactRecord): ArtifactWire {
     spaceId: record.spaceId,
     status: record.status,
   };
+  if (record.sessionId) wire.sessionId = record.sessionId;
+  if (record.paneId) wire.paneId = record.paneId;
   return wire;
 }
 
@@ -58,7 +64,7 @@ export function artifactMime(filename: string): string {
 export const artifactsRoot = (stateDir: string): string => join(stateDir, "artifacts");
 const recordPath = (stateDir: string, id: string): string => join(artifactsRoot(stateDir), id, "record.json");
 
-export function createArtifact(stateDir: string, source: string, title: string, cwd: string, spaceId: string | null = null): ArtifactRecord {
+export function createArtifact(stateDir: string, source: string, title: string, cwd: string, spaceId: string | null = null, sessionId: string | null = null, paneId: string | null = null): ArtifactRecord {
   const info = statSync(source);
   if (!info.isFile()) throw new Error("artifact source is not a regular file");
   if (info.size > ARTIFACT_MAX_BYTES) throw new Error("artifact is larger than 50 MB");
@@ -77,6 +83,9 @@ export function createArtifact(stateDir: string, source: string, title: string, 
     createdAt: new Date().toISOString(),
     cwd,
     spaceId,
+    sessionId,
+    paneId,
+    contentHash: createHash("sha256").update(readFileSync(source)).digest("hex"),
     status: "hosted",
   };
   writeArtifactRecord(stateDir, record);
@@ -98,6 +107,9 @@ function parseRecord(text: string): ArtifactRecord | null {
     if (basename(value.filename) !== value.filename || typeof value.mime !== "string") return null;
     if (typeof value.size !== "number" || typeof value.createdAt !== "string" || typeof value.cwd !== "string") return null;
     if (value.spaceId !== undefined && value.spaceId !== null && typeof value.spaceId !== "string") return null;
+    if (value.sessionId !== undefined && value.sessionId !== null && typeof value.sessionId !== "string") return null;
+    if (value.paneId !== undefined && value.paneId !== null && typeof value.paneId !== "string") return null;
+    if (value.contentHash !== undefined && !/^[a-f0-9]{64}$/u.test(value.contentHash)) return null;
     if (value.status !== "hosted") return null;
     // SAFETY: the required record fields and closed status vocabulary were checked immediately
     // above; optional strings are never trusted for filesystem resolution.

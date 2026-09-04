@@ -17,6 +17,7 @@ export const zh: Dictionary = {
   "artifacts.empty.body": "代理创建的预览、报告、图片和下载文件会显示在这里。",
   "artifacts.open": "打开",
   "artifacts.download": "下载",
+  "artifacts.conversation": "对话",
   "artifacts.status.hosted": "已托管",
 
   // --- settings.theme ---

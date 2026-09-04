@@ -13,7 +13,7 @@ import { BuildStamp } from "@/components/build-stamp";
 import { UpdateBanner } from "@/components/update-banner";
 import { useSpaceActions } from "@/hooks/use-spaces";
 import { homePath, panePath, spacePath } from "@/lib/nav";
-import { leadHost, paneScope } from "@/lib/hosts";
+import { ambientHost, paneScope } from "@/lib/hosts";
 import type { AgentView } from "@/lib/types";
 import { setStatus } from "@/lib/status";
 import { isReadOnly } from "@/lib/types";
@@ -49,9 +49,10 @@ export function SpaceRoute() {
   const toDashboard = () => navigate(homePath(data.scope));
   const switchSpace = (id: string) => navigate(spacePath(id, data.scope));
   const switchTab = (id: string | null) => setTab(id);
-  // Lead-local navigator (peer workspaces are not unioned), so its panes are the lead's — but the
-  // pane still supplies its own host, so opening one can never point the URL at another machine.
-  const navHost = leadHost(data.servers);
+  // The dashboard can drill into a space on ANY pack member. Qualify its tabs and panes with the
+  // selected workspace's host; using the lead here made a peer space report its real tab/pane counts
+  // in the heading and then render an empty body because groupPanesByTab filtered those rows out.
+  const navHost = selectedWs?.host ?? ambientHost(data.servers, data.scope.host);
   const open = (pane: AgentView) =>
     navigate(panePath(pane.paneId, paneScope(data.scope, pane, data.servers, data.sessions)));
 

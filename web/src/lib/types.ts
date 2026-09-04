@@ -958,6 +958,8 @@ export interface ArtifactRecord {
   size: number;
   createdAt: string;
   spaceId: string | null;
+  sessionId?: string;
+  paneId?: string;
   status: "hosted";
 }
 

@@ -17,6 +17,7 @@ export const de: Dictionary = {
   "artifacts.empty.body": "Vorschauen, Berichte, Bilder und Downloads von Agenten erscheinen hier.",
   "artifacts.open": "Öffnen",
   "artifacts.download": "Herunterladen",
+  "artifacts.conversation": "Chat",
   "artifacts.status.hosted": "bereitgestellt",
 
   // --- settings.theme ---

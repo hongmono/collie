@@ -54,7 +54,7 @@ export const HOOKS_SUBCOMMANDS = ["install", "uninstall", "status"] as const;
  * The ownership marker's version. Bump it when the COMMAND we write has to change shape; every
  * installed entry then heals itself on the next `hooks install`.
  */
-export const HOOK_MARKER_VERSION = 1;
+export const HOOK_MARKER_VERSION = 2;
 
 /** What makes an entry ours — at any version, which is what lets a stale one be recognised. */
 export const HOOK_MARKER_PREFIX = "# collie-beacon v";
@@ -98,6 +98,7 @@ export interface HookCommand {
  * {@link hookBinaryOf} — which reads an INSTALLED command back — cannot drift apart.
  */
 const HOOK_VERB = " beacon emit ";
+const ARTIFACT_HOOK_MARKER = "# collie-artifacts-hook v1";
 
 /**
  * The absolute name an installed entry runs, or null when the command is not shaped like ours.
@@ -285,9 +286,15 @@ export type HookDocument =
  * in place.
  */
 function ourGroup(registration: HookRegistration, command: string): JsonObject {
+  const artifactCommand = `${hookBinaryOf(command) ?? ""} artifact discover claude ${ARTIFACT_HOOK_MARKER}`;
   return {
     matcher: registration.matcher,
-    hooks: [{ type: "command", command, timeout: 10 }],
+    hooks: [
+      { type: "command", command, timeout: 10 },
+      ...(registration.event === "Stop"
+        ? [{ type: "command", command: artifactCommand, timeout: 10, async: true }]
+        : []),
+    ],
   };
 }
 
