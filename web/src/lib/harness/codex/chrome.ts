@@ -21,8 +21,8 @@ import {
 export interface ComposerBox {
   /** The `› ` prompt row. */
   promptRow: number;
-  /** The status row under it (last non-blank row of the frame). */
-  statusRow: number;
+  /** The status row under it, absent while slash-command autocomplete replaces that row. */
+  statusRow: number | null;
 }
 
 // A draft wraps onto indented continuation rows between the prompt row and the status row.
@@ -53,6 +53,36 @@ const MAX_INTERNAL_BLANK_ROWS = 20;
 const CONTINUATION = /^ {2}\s*\S/;
 const PROMPT_PREFIX = "› ";
 
+// Typing a slash command replaces the ordinary status row with autocomplete results. That is the
+// exact moment the Agent palette's immediate-send path verifies its text, so treating only a status-
+// anchored prompt as a composer strands every palette command before Enter. Keep this acceptor
+// narrow: a slash draft at column zero, a blank gap, then one or more indented slash-command rows at
+// the absolute tail. Dialogs and transcript echoes cannot satisfy the whole shape.
+const SLASH_DRAFT = /^\/[\w-]*$/;
+const SLASH_SUGGESTION = /^ {2}\/[\w-]+(?:\s{2,}|$)/;
+
+function locateSlashAutocomplete(texts: string[]): ComposerBox | null {
+  const endRow = lastNonBlankIndex(texts);
+  if (endRow < 0) return null;
+
+  let promptRow = endRow - 1;
+  while (promptRow >= 0 && endRow - promptRow <= MAX_DRAFT_ROWS) {
+    const draft = promptText(texts[promptRow]!);
+    if (draft !== null) {
+      if (!SLASH_DRAFT.test(draft.trim())) return null;
+      const rows = texts.slice(promptRow + 1, endRow + 1);
+      if (!rows.some(isBlank)) return null;
+      const suggestions = rows.filter((row) => !isBlank(row));
+      if (suggestions.length === 0 || !suggestions.every((row) => SLASH_SUGGESTION.test(row))) {
+        return null;
+      }
+      return { promptRow, statusRow: null };
+    }
+    promptRow--;
+  }
+  return null;
+}
+
 /** The exact placeholder text is still a valid thing an operator might deliberately type. Codex
  * distinguishes its empty hint by painting the whole body dim, so extraction should use that
  * renderer evidence too instead of discarding an ordinary non-dim draft with those words. */
@@ -80,7 +110,9 @@ function isEmptyPlaceholder(line: StyledLine): boolean {
 export function locateComposer(lines: StyledLine[]): ComposerBox | null {
   const texts = lines.map((l) => rstrip(lineText(l)));
   const statusRow = lastNonBlankIndex(texts);
-  if (statusRow < 0 || !isStatusRow(texts[statusRow]!, lines[statusRow])) return null;
+  if (statusRow < 0 || !isStatusRow(texts[statusRow]!, lines[statusRow])) {
+    return locateSlashAutocomplete(texts);
+  }
 
   // One blank row separates the prompt/draft run from the status row (every capture); above the
   // gap the run is wrapped-draft continuations under the `› ` prompt, with a deliberately bounded
@@ -118,7 +150,7 @@ export function stripChrome(lines: StyledLine[]): StyledLine[] {
 /** The status row, styled, for the strip above the phone composer. Empty when no composer. */
 export function extractStatusLines(lines: StyledLine[]): StyledLine[] {
   const box = locateComposer(lines);
-  if (box === null) return [];
+  if (box === null || box.statusRow === null) return [];
   return [lines[box.statusRow]!];
 }
 
@@ -136,7 +168,8 @@ export function extractInputDraft(lines: StyledLine[]): string | null {
   const texts = lines.map((l) => rstrip(lineText(l)));
   const first = promptText(texts[box.promptRow]!) ?? "";
   const parts = [first.trim()];
-  for (let i = box.promptRow + 1; i < box.statusRow; i++) {
+  const draftEnd = box.statusRow ?? box.promptRow + 1;
+  for (let i = box.promptRow + 1; i < draftEnd; i++) {
     parts.push(texts[i]!.trim());
   }
   const draft = parts.filter((p) => p !== "").join(" ");
@@ -157,7 +190,7 @@ export function composerReady(lines: StyledLine[]): boolean {
 export function composerPrompt(lines: StyledLine[]): string | null {
   const box = locateComposer(lines);
   if (box === null) return null;
-  let end = box.statusRow;
+  let end = box.statusRow ?? box.promptRow + 1;
   while (end > box.promptRow + 1 && isBlank(lineText(lines[end - 1]!))) end--;
   return lines
     .slice(box.promptRow, end)

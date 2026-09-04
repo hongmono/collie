@@ -168,6 +168,31 @@ describe("chrome", () => {
     expect(codexAdapter.composerReady!(splitLines(parseAnsi(screen)))).toBe(false);
   });
 
+  it("keeps the composer available while slash-command autocomplete replaces the status row", () => {
+    const screen = [
+      "some transcript output",
+      "",
+      "› /status",
+      "",
+      "  /status      show current session configuration and token usage",
+      "  /statusline  configure which items appear in the status line",
+    ].join("\n");
+    const lines = splitLines(parseAnsi(screen));
+
+    expect(codexAdapter.composerReady!(lines)).toBe(true);
+    expect(codexAdapter.extractInputDraft(lines)).toBe("/status");
+    expect(codexAdapter.composerPrompt!(lines)).toBe("› /status");
+    expect(codexAdapter.extractStatusLines(lines)).toEqual([]);
+    expect(stripChrome(lines).map(lineText).join("\n")).toContain("some transcript output");
+    expect(stripChrome(lines).map(lineText).join("\n")).not.toContain("/statusline");
+  });
+
+  it("does not mistake an arbitrary slash transcript tail for autocomplete", () => {
+    const screen = ["› /status", "", "  /status is useful prose"].join("\n");
+    const lines = splitLines(parseAnsi(screen));
+    expect(locateComposer(lines)).toBeNull();
+  });
+
   it("a transcript echo above a status-LIKE prose row is not a composer (review repro)", () => {
     // Column-0 prose mentioning a context percentage must not read as the status row…
     const colZero = ["› a submitted transcript message", "", "model · Context 50% left"].join("\n");
@@ -346,7 +371,9 @@ describe("the 0.150.1 default status row", () => {
     expect(lineText(status[0]!)).not.toContain("Context");
     expect(lineText(status[0]!).trimEnd()).toMatch(/^ {2}\S.* · \S/);
     // The located row is the LAST non-blank row — the status row, not a transcript line.
-    expect(status[0]).toBe(lines[locateComposer(lines)!.statusRow]);
+    const statusRow = locateComposer(lines)!.statusRow;
+    expect(statusRow).not.toBeNull();
+    expect(status[0]).toBe(lines[statusRow!]);
   });
 
   it.each(["codex--v0150-idle.txt", "codex--v0150-nogit-idle.txt"])(

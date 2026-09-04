@@ -36,6 +36,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 ### Fixed
 
 - Artifact discovery keeps README deliverables so files created in other agent sessions remain visible.
+- Codex agent commands submit normally while slash-command autocomplete is visible.
 
 ## [1.5.0-6] - 2026-09-04
 
