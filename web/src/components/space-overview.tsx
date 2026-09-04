@@ -13,11 +13,11 @@ import {
   spaceLastSeenMap,
   spaceTriageMap,
 } from "@/lib/spaces";
-import { spaceKey } from "@/lib/hosts";
+import { hostName, spaceKey } from "@/lib/hosts";
 import { TRIAGE_STATUS } from "@/lib/triage";
 import { timeAgo } from "@/lib/format";
 import { statusLabel } from "@/lib/types";
-import type { AgentView, WorkspaceView } from "@/lib/types";
+import type { AgentView, ServerSummary, WorkspaceView } from "@/lib/types";
 import { t, tn } from "@/lib/i18n";
 import { useLocale } from "@/hooks/use-locale";
 
@@ -26,7 +26,7 @@ interface SpaceOverviewProps {
   agents: AgentView[];
   /** Bare shells too — a space you only ever opened a shell in still counts as used. */
   shellPanes?: AgentView[];
-  onOpen: (workspaceId: string) => void;
+  onOpen: (workspace: WorkspaceView) => void;
   onNewSpace: () => void;
   /** True while a Space create is in flight — see `space-strip.tsx`'s prop of the same name. */
   creatingSpace?: boolean;
@@ -36,6 +36,8 @@ interface SpaceOverviewProps {
    * triage dot and its last-seen time into the lead's `w1` row (lib/spaces.ts).
    */
   host?: string;
+  /** Pack roster used to label spaces from another machine. Empty on a solo install. */
+  servers?: ServerSummary[];
   /** Fold state, owned by the dashboard so it can be persisted. */
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,6 +49,7 @@ interface SpaceOverviewProps {
 // A module-level empty list, not a `= []` default in the parameter list: a fresh array literal on
 // every render is a new reference, which defeats memoisation downstream for no benefit here.
 const NO_PANES: AgentView[] = [];
+const NO_SERVERS: ServerSummary[] = [];
 
 export function SpaceOverview({
   workspaces,
@@ -56,6 +59,7 @@ export function SpaceOverview({
   onNewSpace,
   creatingSpace = false,
   host,
+  servers = NO_SERVERS,
   open,
   onOpenChange,
 }: SpaceOverviewProps) {
@@ -173,16 +177,17 @@ export function SpaceOverview({
             rows.map(({ space: w, depth }) => {
               // (host, workspaceId): these rows are the lead's spaces, so a peer that happens to
               // expose the same workspace id contributes nothing to them.
-              const key = spaceKey(host, w.workspaceId);
+              const rowHost = w.host ?? host;
+              const key = spaceKey(rowHost, w.workspaceId);
               const bucket = worstBySpace.get(key);
               const status = bucket ? TRIAGE_STATUS[bucket] : null;
               const blocked = bucket === "needs";
               const seen = lastSeen.get(key) ?? 0;
               return (
                 <button
-                  key={w.workspaceId}
+                  key={key}
                   type="button"
-                  onClick={() => onOpen(w.workspaceId)}
+                  onClick={() => onOpen(w)}
                   className={cn(
                     // Square, like the herd rows: this is a divide-y list, and a rounded fill under
                     // a straight hairline reads as a fault. That holds for EVERY state — corners
@@ -222,6 +227,11 @@ export function SpaceOverview({
                       <span className="size-2.5 shrink-0 rounded-full border border-muted-foreground/40" />
                     )}
                     <span className="min-w-0 flex-1 truncate font-medium">{w.label}</span>
+                    {servers.length > 1 && (
+                      <span className="max-w-24 shrink-0 truncate text-xs text-muted-foreground">
+                        {hostName(servers, rowHost)}
+                      </span>
+                    )}
                     {/* One count plus a relative time is what a 390px row has room for — the tab
                         count went, the pane count is the useful one. Time before count, count last:
                         matches every other list in the app, and the count chip anchors the right

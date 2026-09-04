@@ -109,7 +109,8 @@ export function sortSpacesByRecency(
 ): WorkspaceView[] {
   return workspaces.toSorted(
     (a, b) =>
-      (seen.get(spaceKey(host, b.workspaceId)) ?? 0) - (seen.get(spaceKey(host, a.workspaceId)) ?? 0),
+      (seen.get(spaceKey(b.host ?? host, b.workspaceId)) ?? 0) -
+      (seen.get(spaceKey(a.host ?? host, a.workspaceId)) ?? 0),
   );
 }
 
@@ -138,6 +139,8 @@ export interface SpaceRow {
   readonly depth: 0 | 1;
 }
 
+const repoKey = (space: WorkspaceView): string => `${space.host ?? ""}\0${space.repoRoot ?? ""}`;
+
 /**
  * Nest each worktree under the space showing its repo, keeping the list's recency order.
  *
@@ -159,50 +162,53 @@ export function nestWorktrees(ordered: readonly WorkspaceView[]): SpaceRow[] {
   const parentByRepo = new Map<string, WorkspaceView>();
   for (const space of ordered) {
     if (space.repoRoot !== undefined && space.isWorktree === false) {
-      parentByRepo.set(space.repoRoot, space);
+      parentByRepo.set(repoKey(space), space);
     }
   }
 
   const childrenByParent = new Map<string, WorkspaceView[]>();
   for (const space of ordered) {
     if (space.repoRoot === undefined || space.isWorktree !== true) continue;
-    const parent = parentByRepo.get(space.repoRoot);
+    const parent = parentByRepo.get(repoKey(space));
     if (parent === undefined) continue; // orphan — rendered flat, below
-    const kin = childrenByParent.get(parent.workspaceId) ?? [];
+    const parentKey = spaceKey(parent.host, parent.workspaceId);
+    const kin = childrenByParent.get(parentKey) ?? [];
     kin.push(space);
-    childrenByParent.set(parent.workspaceId, kin);
+    childrenByParent.set(parentKey, kin);
   }
 
   const rows: SpaceRow[] = [];
   const placed = new Set<string>();
   for (const space of ordered) {
-    if (placed.has(space.workspaceId)) continue;
-    const kin = childrenByParent.get(space.workspaceId);
+    const key = spaceKey(space.host, space.workspaceId);
+    if (placed.has(key)) continue;
+    const kin = childrenByParent.get(key);
     // A parent reached through its own position, or dragged up here by a child that came first.
     if (kin !== undefined) {
       rows.push({ space, depth: 0 });
-      placed.add(space.workspaceId);
+      placed.add(key);
       for (const child of kin) {
         rows.push({ space: child, depth: 1 });
-        placed.add(child.workspaceId);
+        placed.add(spaceKey(child.host, child.workspaceId));
       }
       continue;
     }
     // A child met before its parent: emit the whole group HERE, at the child's (fresher) position.
     if (space.repoRoot !== undefined && space.isWorktree === true) {
-      const parent = parentByRepo.get(space.repoRoot);
-      if (parent !== undefined && !placed.has(parent.workspaceId)) {
+      const parent = parentByRepo.get(repoKey(space));
+      const parentKey = parent === undefined ? "" : spaceKey(parent.host, parent.workspaceId);
+      if (parent !== undefined && !placed.has(parentKey)) {
         rows.push({ space: parent, depth: 0 });
-        placed.add(parent.workspaceId);
-        for (const child of childrenByParent.get(parent.workspaceId) ?? []) {
+        placed.add(parentKey);
+        for (const child of childrenByParent.get(parentKey) ?? []) {
           rows.push({ space: child, depth: 1 });
-          placed.add(child.workspaceId);
+          placed.add(spaceKey(child.host, child.workspaceId));
         }
         continue;
       }
     }
     rows.push({ space, depth: 0 });
-    placed.add(space.workspaceId);
+    placed.add(key);
   }
   return rows;
 }

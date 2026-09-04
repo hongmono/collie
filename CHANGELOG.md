@@ -25,6 +25,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Changed
+
+- The dashboard lists spaces from every pack machine and labels each with its host.
+
 ## [1.5.0-2] - 2026-09-04
 
 ### Added

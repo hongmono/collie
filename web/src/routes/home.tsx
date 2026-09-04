@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 
 import { ArtifactsButton, RouteHeader, SettingsGear } from "@/components/app-header";
@@ -17,9 +17,9 @@ import { UpdateBanner } from "@/components/update-banner";
 import { useDashPrefs, openForCount } from "@/hooks/use-dash-prefs";
 import { useSpaceActions } from "@/hooks/use-spaces";
 import { useMuxCapability } from "@/lib/mux-capability";
-import { ambientPanes, leadHost, paneScope, sessionsOnHost } from "@/lib/hosts";
+import { paneScope, sessionsOnHost } from "@/lib/hosts";
 import { panePath, spacePath } from "@/lib/nav";
-import type { AgentView } from "@/lib/types";
+import type { AgentView, WorkspaceView } from "@/lib/types";
 import { useRootData } from "@/lib/route-data";
 
 // Dashboard home screen. The two live sections you might ACT on come first — Needs you → Working
@@ -58,26 +58,10 @@ export function HomeRoute() {
   // right pane name on the wrong terminal. Solo: every pane is untagged, so this is `data.scope`.
   const open = (pane: AgentView) =>
     navigate(panePath(pane.paneId, paneScope(data.scope, pane, data.servers, data.sessions)));
-  const drillInto = (id: string) => navigate(spacePath(id, data.scope));
-  // The space navigator is LEAD-LOCAL (the merge deliberately does not union peer workspaces — their
-  // ids are only unique per machine), so the spaces on screen belong to the lead and their panes must
-  // be looked up under the lead's host. Undefined when solo, which keys everything exactly as before.
-  const navHost = leadHost(data.servers);
+  const drillInto = (workspace: WorkspaceView) =>
+    navigate(spacePath(workspace.workspaceId, paneScope(data.scope, workspace, data.servers)));
   // Sessions are a per-host registry, so the session switcher only ever lists this host's.
   const sessionsHere = sessionsOnHost(data.sessions ?? [], data.scope, data.servers);
-  // …AND LEAD-LOCAL IS ALSO SESSION-LOCAL, which is the half the widened view would otherwise break.
-  // Workspace ids collide across sessions exactly as they collide across machines, and the space
-  // navigator keys by `(host, workspaceId)` with no session in it — so on a widened body another
-  // session's `w1` panes would paint their blocked dot and their recency onto the AMBIENT `w1` row,
-  // and drilling in would show a space with nothing blocked in it. The list widens; the navigation
-  // tree does not (that is the whole shape of this feature, and the shape the pack merge already
-  // has), so the tree is fed ambient panes only. Untagged panes are ambient by definition, which
-  // makes this the identity filter on every un-widened body.
-  const navPanes = useMemo(
-    () => ambientPanes(data.agents, data.shellPanes, data.scope, data.servers, data.sessions),
-    [data.agents, data.shellPanes, data.scope, data.servers, data.sessions],
-  );
-
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col">
       {/* The dashboard header: wordmark + the session switcher (dashboard-only), then the shared pill
@@ -125,10 +109,10 @@ export function HomeRoute() {
           />
           <LaunchStrip open={launchOpen} onOpenChange={setLaunchOpen} scope={data.scope} />
           <SpaceOverview
-            workspaces={data.workspaces}
-            agents={navPanes.agents}
-            shellPanes={navPanes.shellPanes}
-            host={navHost}
+            workspaces={data.allWorkspaces ?? data.workspaces}
+            agents={data.agents}
+            shellPanes={data.shellPanes}
+            servers={data.servers}
             onOpen={drillInto}
             onNewSpace={() => setNewSpaceOpen(true)}
             creatingSpace={creatingSpace}

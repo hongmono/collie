@@ -8,6 +8,7 @@ import { ROOT_ROUTE_ID, type HomeData } from "@/lib/loaders";
 import {
   fixtureAgents,
   fixturePackAgents,
+  fixturePackWorkspaces,
   fixturePackSessions,
   fixturePackShellPanes,
   fixtureServers,
@@ -32,6 +33,7 @@ const homeData = (snap: Partial<SnapshotResponse>, scope: HomeData["scope"] = {}
   agents: snap.agents ?? [],
   shellPanes: snap.shellPanes ?? [],
   workspaces: snap.workspaces ?? fixtureWorkspaces,
+  allWorkspaces: snap.workspaces ?? fixtureWorkspaces,
   tabs: snap.tabs ?? fixtureTabs,
   sessions: snap.sessions ?? [],
   servers: snap.servers ?? [],
@@ -96,6 +98,7 @@ const packed = () =>
     shellPanes: fixturePackShellPanes,
     sessions: fixturePackSessions,
     servers: fixtureServers,
+    workspaces: fixturePackWorkspaces,
   });
 
 describe("the dashboard on ONE machine is untouched", () => {

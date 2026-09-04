@@ -60,9 +60,26 @@ describe("SpaceOverview", () => {
   it("opens a space when its card is tapped", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
-    render(view({ workspaces: [ws("w1", "anchorgenius", 2, 3)], onOpen }));
+    const workspace = ws("w1", "anchorgenius", 2, 3);
+    render(view({ workspaces: [workspace], onOpen }));
     await user.click(screen.getByRole("button", { name: /anchorgenius/ }));
-    expect(onOpen).toHaveBeenCalledExactlyOnceWith("w1");
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(workspace);
+  });
+
+  it("keeps colliding workspace ids from different pack members and labels their machines", () => {
+    const lead = { ...ws("w1", "lead-space", 1, 1), host: "lead" };
+    const peer = { ...ws("w1", "peer-space", 1, 1), host: "peer" };
+    render(
+      view({
+        workspaces: [lead, peer],
+        servers: [
+          { id: "lead", name: "OCI", isLead: true, reachable: true, protocol: "ok", lastSeenAt: 1 },
+          { id: "peer", name: "MacBook", isLead: false, reachable: true, protocol: "ok", lastSeenAt: 1 },
+        ],
+      }),
+    );
+    expect(screen.getByRole("button", { name: /lead-space.*OCI/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /peer-space.*MacBook/i })).toBeInTheDocument();
   });
 
   it("creates a new space from the header button", async () => {
