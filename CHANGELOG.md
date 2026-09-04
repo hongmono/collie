@@ -25,6 +25,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Fixed
+
+- Pane back navigation opens its parent space instead of replaying browser history.
+
 ## [1.5.0-7] - 2026-09-04
 
 ### Changed

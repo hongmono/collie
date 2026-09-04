@@ -1,17 +1,20 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { ROOT_ROUTE_ID, type HomeData, type PaneData } from "@/lib/loaders";
-import { panePath } from "@/lib/nav";
+import { panePath, spacePath } from "@/lib/nav";
 import type { AgentView } from "@/lib/types";
 import { DetailRoute } from "./detail";
 
 // Stub the heavy terminal view: this test is about DetailRoute's routing/freshPane logic, not the
 // composer. The stub reports which pane it was handed and whether an agent resolved for it.
 vi.mock("@/components/agent-chat", () => ({
-  AgentChat: ({ paneId, agent }: { paneId: string; agent?: AgentView }) => (
-    <div data-testid="chat">{`pane:${paneId}:${agent ? "live" : "gone"}`}</div>
+  AgentChat: ({ paneId, agent, onBack }: { paneId: string; agent?: AgentView; onBack: () => void }) => (
+    <div data-testid="chat">
+      {`pane:${paneId}:${agent ? "live" : "gone"}`}
+      <button type="button" onClick={onBack}>Back</button>
+    </div>
   ),
 }));
 
@@ -62,6 +65,7 @@ function makeRouter(initialPath: string, homeLoader: () => HomeData) {
         element: <Outlet />,
         children: [
           { index: true, element: <div data-testid="home">HOME</div> },
+          { path: "space/:spaceId", element: <div data-testid="space">SPACE</div> },
           {
             path: "pane/:paneId",
             loader: ({ params }): PaneData => ({
@@ -84,6 +88,19 @@ function makeRouter(initialPath: string, homeLoader: () => HomeData) {
 }
 
 describe("DetailRoute — freshPane bootstrap", () => {
+  it("goes to the pane's parent space instead of replaying browser history", async () => {
+    const pane = agentView("w1:p1", "agent");
+    const router = makeRouter("/", () => connected([pane]));
+    await router.navigate(panePath(pane.paneId));
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByTestId("chat")).toHaveTextContent("pane:w1:p1:live");
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(await screen.findByTestId("space")).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(spacePath(pane.workspaceId));
+  });
+
   it("shows a freshly-created pane opened from the home screen", async () => {
     const router = makeRouter("/", () => connected([]));
     render(<RouterProvider router={router} />);

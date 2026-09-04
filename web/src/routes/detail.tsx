@@ -4,7 +4,7 @@ import { useLoaderData, useLocation, useNavigate, useParams } from "react-router
 import { AgentChat } from "@/components/agent-chat";
 import { useLoadingStalled } from "@/hooks/use-loading-stalled";
 import { type PaneData } from "@/lib/loaders";
-import { homePath, panePath } from "@/lib/nav";
+import { homePath, panePath, spacePath } from "@/lib/nav";
 import { paneScopeKey } from "@/lib/scope";
 import { findPane, paneScope } from "@/lib/hosts";
 import { setStatus } from "@/lib/status";
@@ -60,6 +60,10 @@ export function DetailRoute() {
     (fresh && fresh.paneId === paneId && !seen ? fresh : undefined);
   const tabLabel = root.tabs.find((t) => t.tabId === agent?.tabId)?.label;
   const gone = !agent;
+  // A pane is a child of its workspace, regardless of which route happened to precede it in the
+  // browser stack. The header's back affordance follows that hierarchy instead of replaying history
+  // (which could otherwise jump to Settings, another pane, or out of the installed PWA entirely).
+  const parentPath = agent ? spacePath(agent.workspaceId, scope) : homePath(scope);
 
   // Recover from a closed pane: once a healthy snapshot no longer has it, bounce Home instead of
   // leaving you on a dead "agent gone" view. Guarded on a connected, non-stale snapshot so a
@@ -97,7 +101,7 @@ export function DetailRoute() {
       bridge={root.bridge}
       error={root.error}
       stalled={stalled}
-      onBack={() => navigate(homePath(scope))}
+      onBack={() => navigate(parentPath)}
       onSelect={(id) =>
         navigate(
           panePath(
