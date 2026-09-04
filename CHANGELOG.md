@@ -25,6 +25,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Changed
+
+- Image uploads appear as removable Codex-style attachments instead of raw paths in the composer.
+
 ### Added
 
 - Agent Stop hooks automatically publish mentioned files, Mermaid diagrams, tables, and long reports as session-linked artifacts.

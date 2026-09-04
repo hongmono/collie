@@ -16,6 +16,7 @@ import { useBusyWhile } from "@/lib/busy";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ui/chat/chat-input";
+import { ChatAttachment } from "@/components/ui/chat/chat-attachment";
 import { NavTray } from "@/components/nav-tray";
 import { CommandPalette } from "@/components/command-palette";
 import { QuickActionsContent } from "@/components/quick-actions";
@@ -44,6 +45,12 @@ import { RecordingStrip } from "@/components/recording-strip";
 import { useSttRecorder } from "@/hooks/use-stt-recorder";
 import { useHandsFree, useSttCapability } from "@/lib/stt";
 import { NoEchoNotice } from "@/components/no-echo-notice";
+import {
+  composerDraftPreview,
+  joinComposerDraft,
+  splitComposerDraft,
+  type ComposerAttachment,
+} from "@/lib/composer-attachments";
 
 export interface ComposerHandle {
   /** Focus the input and put the caret at the end — used by the mirror-tap-to-focus in AgentChat. */
@@ -287,11 +294,19 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // The phone-owned draft, restored from (and written through to) the per-pane draft store — the
   // pane view is keyed by paneId, so without this, stepping over to another tab mid-reply ate the
   // message. Lazy initialiser so the restore happens on the mount, before first paint.
-  const [input, setInput] = useState(() => loadDraft(scope, paneId) ?? "");
+  const initialDraftRef = useRef<ReturnType<typeof splitComposerDraft> | null>(null);
+  if (initialDraftRef.current === null) {
+    initialDraftRef.current = splitComposerDraft(loadDraft(scope, paneId) ?? "");
+  }
+  const [input, setInput] = useState(() => initialDraftRef.current!.text);
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>(
+    () => initialDraftRef.current!.attachments,
+  );
   // Mirror of `input` for the write-through path: updateInput needs the previous value to apply a
   // functional update AND to persist the result, without either reading stale state or doing the
   // save inside a (double-invoked) state updater.
   const inputValueRef = useRef(input);
+  const attachmentsRef = useRef(attachments);
   // Which pane the current `input` belongs to. DetailRoute keys AgentChat by paneId, so in the app a
   // pane→pane navigation remounts this component and the lazy initialiser above does the work — but
   // the component must not depend on that: if it is ever rendered with a changed paneId/session in
@@ -323,7 +338,22 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     inputValueRef.current = value;
     setInput(value);
     if (noEchoRef.current !== null) return;
-    saveDraft(scope, paneId, value);
+    saveDraft(scope, paneId, joinComposerDraft(value, attachmentsRef.current));
+  }
+
+  function updateAttachments(value: ComposerAttachment[]) {
+    attachmentsRef.current = value;
+    setAttachments(value);
+    if (noEchoRef.current !== null) return;
+    saveDraft(scope, paneId, joinComposerDraft(inputValueRef.current, value));
+  }
+
+  function clearPhoneDraft() {
+    inputValueRef.current = "";
+    attachmentsRef.current = [];
+    setInput("");
+    setAttachments([]);
+    clearDraft(scope, paneId);
   }
 
   /** {@link updateInput} for the appenders, which need the current value to build the next one.
@@ -336,11 +366,19 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   useEffect(() => {
     const prev = draftPaneRef.current;
     if (prev.paneId === paneId && prev.scopeId === scopeId) return;
-    if (noEchoRef.current === null) saveDraft(prev.scope, prev.paneId, inputValueRef.current);
+    if (noEchoRef.current === null) {
+      saveDraft(
+        prev.scope,
+        prev.paneId,
+        joinComposerDraft(inputValueRef.current, attachmentsRef.current),
+      );
+    }
     draftPaneRef.current = { scope, scopeId, paneId };
-    const restored = loadDraft(scope, paneId) ?? "";
-    inputValueRef.current = restored;
-    setInput(restored);
+    const restored = splitComposerDraft(loadDraft(scope, paneId) ?? "");
+    inputValueRef.current = restored.text;
+    attachmentsRef.current = restored.attachments;
+    setInput(restored.text);
+    setAttachments(restored.attachments);
     noticeNoEchoRef.current(null); // it described the pane we just left
   }, [scope, scopeId, paneId]);
   const [sending, setSending] = useState(false);
@@ -440,7 +478,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     paneKey: `${scopeId}\0${paneId}`,
     inputRef,
     // The ref, not `input`: the password-prompt handoff clears the draft and arms in one tick.
-    replyDraft: () => inputValueRef.current,
+    replyDraft: () => joinComposerDraft(inputValueRef.current, attachmentsRef.current),
     canActivate: () => !(locked || sending || uploading),
     // `locked` covers a gone pane, a read-only device, and the idle pause. A LOST CONNECTION is
     // deliberately not added here: the mode already disarms on a failed batch, which is the same
@@ -494,7 +532,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // an EMPTY box, which is the one state where Send can do nothing anyway; the first character typed
   // hands the button straight back. `direct.active` keeps it, because there the same button is the
   // "stop typing into the terminal" control and that must not be displaceable.
-  const micIsPrimary = stt !== null && !direct.active && input.trim() === "";
+  const micIsPrimary =
+    stt !== null && !direct.active && input.trim() === "" && attachments.length === 0;
 
   /**
    * What happens to a finished transcript.
@@ -792,9 +831,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         },
       });
       if (res.status === "sent") {
-        // Phone-owned input — cleared once the reply is on its way. Via updateInput, so the stored
-        // draft goes with it (an empty value removes the key).
-        if (isDraft) updateInput("");
+        // Phone-owned text and attachments are cleared together only once the reply is on its way.
+        if (isDraft) clearPhoneDraft();
         // Remember what/when we sent, so the next few polls recognise this text echoing on the "❯"
         // line as our own in-flight reply rather than a stranded draft (suppressEcho above).
         lastSentRef.current = { text: t, at: Date.now() };
@@ -813,7 +851,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         if (sentTimer.current) clearTimeout(sentTimer.current);
         sentTimer.current = setTimeout(() => setJustSent(false), 1500);
         setStatus(translate("composer.status.sent"), "success");
-        const preview = t.length > 60 ? `${t.slice(0, 57)}…` : t;
+        const sentDraft = splitComposerDraft(t);
+        const display = isDraft ? composerDraftPreview(sentDraft.text, sentDraft.attachments) : t;
+        const preview = display.length > 60 ? `${display.slice(0, 57)}…` : display;
         setLastSent(preview);
         if (lastSentTimerRef.current) clearTimeout(lastSentTimerRef.current);
         lastSentTimerRef.current = setTimeout(() => setLastSent(null), 6000);
@@ -862,11 +902,12 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // "Really send?" state instead of sending; the confirming second tap goes through. Non-destructive
   // input sends immediately (and any stray armed state is cleared).
   function onSendClick() {
+    const draft = joinComposerDraft(input, attachments);
     // An armed override takes precedence: this tap IS the deliberate "type anyway", so it skips the
     // destructive re-confirm (already answered on the tap that got blocked) and the pre-flight.
     if (forceConfirm.pending === "force") {
       forceConfirm.reset();
-      send(input, true, true);
+      send(draft, true, true);
       return;
     }
     const reason = isDestructiveInput(input);
@@ -883,7 +924,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       return;
     }
     sendConfirm.reset();
-    send(input, true);
+    send(draft, true);
   }
   const confirmingSend = sendConfirm.pending === "send";
   const forcingSend = forceConfirm.pending === "force";
@@ -943,7 +984,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     focusInputEnd();
   }
 
-  // Upload an image; on success append its host path to the composer so the user can add context.
+  // Upload an image; retain its host path in draft state while showing a compact attachment chip.
   // Shared by the file picker, clipboard paste, and desktop drag-and-drop. The ref closes the gap
   // before React renders `uploading=true`: two drops in that gap must not start parallel uploads and
   // race their paths into the draft.
@@ -956,7 +997,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       if (res.ok) {
         const path = res.path;
         direct.deactivateSilently();
-        updateInputFrom((prev) => (prev.trim() ? `${prev.trimEnd()} ${path}` : path));
+        updateAttachments([...attachmentsRef.current, { path }]);
         focusInputEnd();
         setStatus(translate("composer.upload.success"), "success");
       } else {
@@ -1442,6 +1483,24 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             onDragLeave={onImageDragLeave}
             onDrop={onDropImage}
           >
+            {!direct.active && attachments.length > 0 && (
+              <div
+                className="mb-2 flex max-w-full flex-wrap gap-2"
+                aria-label={translate("composer.attachments.aria")}
+              >
+                {attachments.map((attachment, index) => (
+                  <ChatAttachment
+                    key={`${attachment.path}-${index}`}
+                    index={index}
+                    path={attachment.path}
+                    removeLabel={translate("composer.attachment.remove", { number: index + 1 })}
+                    onRemove={() =>
+                      updateAttachments(attachmentsRef.current.filter((_, item) => item !== index))
+                    }
+                  />
+                ))}
+              </div>
+            )}
           <ChatInput
             ref={inputRef}
             value={direct.active ? direct.value : input}
@@ -1559,7 +1618,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               variant="destructive"
               className="h-11 shrink-0 rounded-md px-4 text-sm font-semibold"
               onClick={onSendClick}
-              disabled={locked || !input.trim() || sending}
+              disabled={locked || !joinComposerDraft(input, attachments).trim() || sending}
               aria-label={translate("composer.send.typeAnyway")}
             >
               {translate("composer.send.typeAnyway")}
@@ -1569,7 +1628,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               variant="destructive"
               className="h-11 shrink-0 rounded-md px-4 text-sm font-semibold"
               onClick={onSendClick}
-              disabled={locked || !input.trim() || sending}
+              disabled={locked || !joinComposerDraft(input, attachments).trim() || sending}
               aria-label={translate("composer.send.reallySend")}
             >
               {translate("composer.send.reallySend")}

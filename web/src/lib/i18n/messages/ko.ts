@@ -215,6 +215,8 @@ export const ko: Dictionary = {
   "composer.mic.stop": "중지",
   "composer.mic.discardAria": "녹음 취소",
   "composer.attach.aria": "이미지 첨부",
+  "composer.attachments.aria": "첨부한 이미지",
+  "composer.attachment.remove": "이미지 {number} 삭제",
   "composer.send.typeAnyway": "그대로 입력할까요?",
   "composer.send.reallySend": "전송할까요?",
   "composer.send.stopTypingAria": "터미널 입력 중단",
@@ -231,7 +233,7 @@ export const ko: Dictionary = {
   "composer.discard.confirmKeys.other": "대기 중인 키 {count}개를 삭제하려면 다시 누르세요.",
   "composer.destructive.confirm": "주의가 필요한 명령: {reason}. 확인하려면 전송을 다시 누르세요.",
   "composer.destructive.confirmOnHost": "주의가 필요한 명령: {host}의 {reason}. 확인하려면 전송을 다시 누르세요.",
-  "composer.upload.success": "이미지 추가 완료. 메시지에 경로를 삽입했습니다.",
+  "composer.upload.success": "이미지를 첨부했습니다.",
   "composer.upload.drop": "이미지를 놓아 첨부",
   "composer.noEcho.title": "비밀번호 입력 프롬프트. 입력 내용이 표시되지 않습니다.",
   "composer.noEcho.noLiveTyped":

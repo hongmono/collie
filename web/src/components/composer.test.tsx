@@ -2173,7 +2173,8 @@ describe("Composer — clipboard image paste", () => {
 
     fireEvent.paste(box, { clipboardData: { items: [item] } });
 
-    await waitFor(() => expect(box).toHaveValue("/tmp/shot.png"));
+    await screen.findByText("[Image #1]");
+    expect(box).toHaveValue("");
   });
 
   it("leaves a plain-text paste alone — no upload, nothing written by the paste handler", () => {
@@ -2216,7 +2217,8 @@ describe("Composer — image drag and drop", () => {
 
     fireEvent.drop(zone, data);
     expect(screen.queryByText("Drop image to attach")).not.toBeInTheDocument();
-    await waitFor(() => expect(box).toHaveValue("/tmp/dropped.png"));
+    await screen.findByText("[Image #1]");
+    expect(box).toHaveValue("");
   });
 
   it("does not intercept an ordinary text drag", () => {
@@ -2250,7 +2252,8 @@ describe("Composer — image drag and drop", () => {
 
     await waitFor(() => expect(uploads).toBe(1));
     release();
-    await waitFor(() => expect(box).toHaveValue("/tmp/first.png"));
+    await screen.findByText("[Image #1]");
+    expect(box).toHaveValue("");
   });
 });
 
@@ -2735,7 +2738,7 @@ describe("Composer — a long upload path cannot widen the field", () => {
     expect(box.className).toMatch(/placeholder:whitespace-nowrap/);
   });
 
-  it("still takes the appended path verbatim — the fix is layout, not the text", async () => {
+  it("shows an uploaded path as a removable image attachment instead of textarea text", async () => {
     const path = "/home/operator/.local/share/collie/uploads/2026-08-31T09-14-22-a1b2c3d4e5f6.png";
     server.use(http.post(/\/api\/pane\/[^/]+\/upload$/, () => HttpResponse.json({ ok: true, path })));
     renderComposer();
@@ -2746,7 +2749,11 @@ describe("Composer — a long upload path cannot widen the field", () => {
       clipboardData: { items: [{ kind: "file", type: "image/png", getAsFile: () => file }] },
     });
 
-    await waitFor(() => expect(box).toHaveValue(path));
+    await screen.findByText("[Image #1]");
+    expect(box).toHaveValue("");
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /remove image 1/i }));
+    expect(screen.queryByText("[Image #1]")).not.toBeInTheDocument();
   });
 });

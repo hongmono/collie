@@ -207,6 +207,8 @@ export const zh: Dictionary = {
   "composer.mic.stop": "停止",
   "composer.mic.discardAria": "放弃录音",
   "composer.attach.aria": "添加图片附件",
+  "composer.attachments.aria": "已附加图片",
+  "composer.attachment.remove": "移除图片 {number}",
   "composer.send.typeAnyway": "仍要输入？",
   "composer.send.reallySend": "确认发送？",
   "composer.send.stopTypingAria": "停止向终端输入",
@@ -222,7 +224,7 @@ export const zh: Dictionary = {
   "composer.discard.confirmKeys.other": "再次点击以放弃队列中的 {count} 个按键",
   "composer.destructive.confirm": "破坏性操作：{reason}。再次点击“发送”以确认",
   "composer.destructive.confirmOnHost": "破坏性操作：{host} 上的 {reason}。再次点击“发送”以确认",
-  "composer.upload.success": "已添加图片，路径已填入消息",
+  "composer.upload.success": "图片已附加",
   "composer.upload.drop": "拖放图片以附加",
   "composer.noEcho.title": "密码提示（无回显）",
   "composer.noEcho.noLiveTyped":

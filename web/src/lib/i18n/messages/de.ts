@@ -220,6 +220,8 @@ export const de: Dictionary = {
   "composer.mic.stop": "Stopp",
   "composer.mic.discardAria": "Aufnahme verwerfen",
   "composer.attach.aria": "Bild anhängen",
+  "composer.attachments.aria": "Angehängte Bilder",
+  "composer.attachment.remove": "Bild {number} entfernen",
   "composer.send.typeAnyway": "Trotzdem tippen",
   "composer.send.reallySend": "Senden bestätigen",
   "composer.send.stopTypingAria": "Eingabe ins Terminal abbrechen",
@@ -238,7 +240,7 @@ export const de: Dictionary = {
   "composer.destructive.confirm": "Destruktiv: {reason}. Erneut tippen zum Bestätigen.",
   "composer.destructive.confirmOnHost":
     "Destruktiv: {reason} auf {host}. Erneut tippen zum Bestätigen.",
-  "composer.upload.success": "Bild hinzugefügt, Pfad steht in der Nachricht",
+  "composer.upload.success": "Bild angehängt",
   "composer.upload.drop": "Bild zum Anhängen ablegen",
   "composer.noEcho.title": "Passwortabfrage ohne Echo",
   "composer.noEcho.noLiveTyped":

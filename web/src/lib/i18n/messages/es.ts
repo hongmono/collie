@@ -219,6 +219,8 @@ export const es: Dictionary = {
   "composer.mic.stop": "Detener",
   "composer.mic.discardAria": "Descartar grabación",
   "composer.attach.aria": "Adjuntar imagen",
+  "composer.attachments.aria": "Imágenes adjuntas",
+  "composer.attachment.remove": "Eliminar imagen {number}",
   "composer.send.typeAnyway": "¿Escribir de todos modos?",
   "composer.send.reallySend": "¿Confirmar envío?",
   "composer.send.stopTypingAria": "Detener escritura en la terminal",
@@ -237,7 +239,7 @@ export const es: Dictionary = {
   "composer.destructive.confirm": "Acción destructiva: {reason}. Pulsa Enviar de nuevo para confirmar.",
   "composer.destructive.confirmOnHost":
     "Acción destructiva: {reason} en {host}. Pulsa Enviar de nuevo para confirmar.",
-  "composer.upload.success": "Imagen adjunta. Ruta insertada en el mensaje.",
+  "composer.upload.success": "Imagen adjunta.",
   "composer.upload.drop": "Suelta la imagen para adjuntarla",
   "composer.noEcho.title": "Solicitud de contraseña: sin eco en terminal",
   "composer.noEcho.noLiveTyped":

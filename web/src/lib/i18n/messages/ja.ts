@@ -216,6 +216,8 @@ export const ja: Dictionary = {
   "composer.mic.stop": "停止",
   "composer.mic.discardAria": "録音を破棄",
   "composer.attach.aria": "画像を添付",
+  "composer.attachments.aria": "添付画像",
+  "composer.attachment.remove": "画像 {number} を削除",
   "composer.send.typeAnyway": "強制的に入力しますか？",
   "composer.send.reallySend": "送信しますか？",
   "composer.send.stopTypingAria": "ターミナルへの入力を停止",
@@ -233,7 +235,7 @@ export const ja: Dictionary = {
   "composer.discard.confirmKeys.other": "もう一度タップすると待機中の{count}キーを破棄します",
   "composer.destructive.confirm": "破壊的操作: {reason}。確認のため送信を再タップしてください",
   "composer.destructive.confirmOnHost": "破壊的操作: {host}上の{reason}。確認のため送信を再タップしてください",
-  "composer.upload.success": "画像を追加しました。パスを入力欄に挿入しました",
+  "composer.upload.success": "画像を添付しました",
   "composer.upload.drop": "画像をドロップして添付",
   "composer.noEcho.title": "パスワード入力プロンプト: エコーバック無効",
   "composer.noEcho.noLiveTyped":

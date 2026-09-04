@@ -232,6 +232,8 @@ export const en = {
   "composer.mic.stop": "Stop",
   "composer.mic.discardAria": "Discard recording",
   "composer.attach.aria": "Attach image",
+  "composer.attachments.aria": "Attached images",
+  "composer.attachment.remove": "Remove image {number}",
   "composer.send.typeAnyway": "Type anyway?",
   "composer.send.reallySend": "Really send?",
   "composer.send.stopTypingAria": "Stop typing into terminal",
@@ -249,7 +251,7 @@ export const en = {
   "composer.discard.confirmKeys.other": "Tap again to discard {count} queued keys",
   "composer.destructive.confirm": "Destructive: {reason} — tap Send again to confirm",
   "composer.destructive.confirmOnHost": "Destructive: {reason} on {host} — tap Send again to confirm",
-  "composer.upload.success": "Image added — path in message",
+  "composer.upload.success": "Image attached",
   "composer.upload.drop": "Drop image to attach",
   "composer.noEcho.title": "Password prompt — nothing echoes",
   "composer.noEcho.noLiveTyped":
