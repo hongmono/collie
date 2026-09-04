@@ -25,18 +25,20 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-7] - 2026-09-04
+
 ### Changed
 
-- Pane entry shows a loading cover until the resized PTY has been read back at its new geometry.
+- Pane entry shows a loading cover until the resized PTY has been read back at its new geometry. ([9d72b0b](https://github.com/hongmono/collie/commit/9d72b0b))
 
 ### Added
 
-- Hosted Markdown artifacts render as formatted previews in the artifact gallery.
+- Hosted Markdown artifacts render as formatted previews in the artifact gallery. ([9d72b0b](https://github.com/hongmono/collie/commit/9d72b0b))
 
 ### Fixed
 
-- Artifact discovery keeps README deliverables so files created in other agent sessions remain visible.
-- Codex agent commands submit normally while slash-command autocomplete is visible.
+- Artifact discovery keeps README deliverables so files created in other agent sessions remain visible. ([9d72b0b](https://github.com/hongmono/collie/commit/9d72b0b))
+- Codex agent commands submit normally while slash-command autocomplete is visible. ([61fb027](https://github.com/hongmono/collie/commit/61fb027))
 
 ## [1.5.0-6] - 2026-09-04
 
