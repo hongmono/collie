@@ -25,6 +25,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Fixed
+
+- CLI integration coverage follows the current v2 beacon hook marker.
+
 ## [1.5.0-5] - 2026-09-04
 
 ### Fixed

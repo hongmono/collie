@@ -2124,7 +2124,7 @@ assert_contains "$STDOUT" "${BEACON_ROOT}/bin/collie beacon emit"
 # The operator's own hook is still there, and so is every other setting.
 assert_contains "$(cat "$CLAUDE_SETTINGS")" "/usr/local/bin/audit.sh"
 assert_contains "$(cat "$CLAUDE_SETTINGS")" '"model": "opus"'
-assert_contains "$(cat "$CLAUDE_SETTINGS")" "collie-beacon v1"
+assert_contains "$(cat "$CLAUDE_SETTINGS")" "collie-beacon v2"
 assert_eq "$(cat "${CLAUDE_SETTINGS}.collie-backup")" "$(cat "${TMP_ROOT}/settings.original")"
 
 # Installing twice is byte-identical — the whole point of merging by marker rather than appending.
@@ -2134,7 +2134,7 @@ assert_contains "$STDOUT" "no bytes changed"
 assert_eq "$(cat "$CLAUDE_SETTINGS")" "$(cat "${TMP_ROOT}/settings.installed")"
 
 beacon_env hooks status || fail "\`collie hooks status\` failed after install: ${STDERR}"
-assert_contains "$STDOUT" "installed (v1)"
+assert_contains "$STDOUT" "installed (v2)"
 
 beacon_env hooks uninstall claude || fail "\`collie hooks uninstall claude\` failed: ${STDERR}"
 case "$(cat "$CLAUDE_SETTINGS")" in *"collie-beacon"*) fail "uninstall left a marked entry behind" ;; esac
