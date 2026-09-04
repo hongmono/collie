@@ -282,6 +282,7 @@ export const es: Dictionary = {
   "chat.scrollback.noSessionReported":
     "{agent} no ha registrado ninguna sesión en Herdr. Instala o actualiza la integración de Herdr correspondiente y reinicia el agente en este panel.",
   "chat.output.empty": "(sin salida reciente)",
+  "chat.terminal.fitting": "Ajustando terminal…",
   "chat.switcher.aria": "Cambiar panel",
   "chat.switcher.title": "Cambiar panel",
   "chat.switcher.launch.here": "aquí",

@@ -15,6 +15,7 @@ describe("artifact discovery", () => {
       writeFileSync(join(cwd, "README.md"), "docs");
       expect(mentionedArtifactPaths("See `out/report.html`, `source.ts`, and `README.md`.", cwd)).toEqual([
         join(cwd, "out", "report.html"),
+        join(cwd, "README.md"),
       ]);
     } finally {
       rmSync(cwd, { recursive: true, force: true });

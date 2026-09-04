@@ -11,7 +11,10 @@ const FILE_EXTENSIONS = new Set([
   ".html", ".htm", ".md", ".txt", ".log", ".csv", ".json", ".pdf", ".png", ".jpg",
   ".jpeg", ".gif", ".webp", ".svg", ".zip",
 ]);
-const BORING_NAMES = new Set(["README.md", "AGENTS.md", "CLAUDE.md", "CHANGELOG.md", "package.json"]);
+// Agent/config instructions and project metadata are never user-facing artifacts. README files are
+// deliberately absent: agents routinely create a README as their actual deliverable, and dropping
+// it made Markdown produced in another session look as though Collie had never discovered it.
+const BORING_NAMES = new Set(["AGENTS.md", "CLAUDE.md", "CHANGELOG.md", "package.json"]);
 const PATH_TOKEN = /(?:`([^`\n]+)`|\[[^\]]+\]\(([^)\n]+)\)|(?<![\w/])((?:\.\.?\/|\/)?[\w@%+.,=~/-]+\.[A-Za-z0-9]{2,5}))/gu;
 const MERMAID = /```mermaid\s*\n[\s\S]*?```/giu;
 const TABLE = /(?:^|\n)(\|[^\n]+\|\n\|(?:\s*:?-{3,}:?\s*\|)+\n(?:\|[^\n]+\|(?:\n|$))+)/gu;

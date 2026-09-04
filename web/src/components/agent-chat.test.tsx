@@ -182,6 +182,25 @@ describe("AgentChat — fit the PTY to the last active device", () => {
     height.mockRestore();
   });
 
+  it("covers the stale grid until the opening resize is applied and re-read", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/resize$/, async () => {
+        await held;
+        return HttpResponse.json({ ok: true, cols: 50, rows: 30 });
+      }),
+    );
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
+
+    renderChat();
+
+    expect(await screen.findByRole("status", { name: "Fitting terminal…" })).toBeInTheDocument();
+    release();
+    await waitFor(() => expect(screen.queryByRole("status", { name: "Fitting terminal…" })).toBeNull());
+  });
+
   it("resends a changed grid when the visible terminal area is resized", async () => {
     const grids: Array<{ cols: number; rows: number }> = [];
     server.use(

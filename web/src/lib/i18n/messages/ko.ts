@@ -276,6 +276,7 @@ export const ko: Dictionary = {
   "chat.scrollback.noSessionReported":
     "{agent}가 Herdr에 세션을 보고하지 않았습니다. 에이전트용 Herdr 연동 패키지를 설치하거나 업데이트한 후 이 창에서 에이전트를 재시작하십시오.",
   "chat.output.empty": "(최근 출력 없음)",
+  "chat.terminal.fitting": "터미널 크기 맞추는 중…",
   "chat.switcher.aria": "창 전환",
   "chat.switcher.title": "창 전환",
   "chat.switcher.launch.here": "여기",

@@ -25,6 +25,18 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Changed
+
+- Pane entry shows a loading cover until the resized PTY has been read back at its new geometry.
+
+### Added
+
+- Hosted Markdown artifacts render as formatted previews in the artifact gallery.
+
+### Fixed
+
+- Artifact discovery keeps README deliverables so files created in other agent sessions remain visible.
+
 ## [1.5.0-6] - 2026-09-04
 
 ### Fixed

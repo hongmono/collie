@@ -283,6 +283,7 @@ export const de: Dictionary = {
   "chat.scrollback.noSessionReported":
     "{agent} hat keine Sitzung an Herdr gemeldet. Herdr-Integration installieren oder aktualisieren und den Agenten in diesem Pane neu starten.",
   "chat.output.empty": "(keine neue Ausgabe)",
+  "chat.terminal.fitting": "Terminal wird angepasst…",
   "chat.switcher.aria": "Pane wechseln",
   "chat.switcher.title": "Pane wechseln",
   "chat.switcher.launch.here": "hier",

@@ -300,6 +300,7 @@ export const en = {
   "chat.scrollback.noSessionReported":
     "{agent} has not reported a session to Herdr. Install or update the Herdr integration for it, then restart the agent in this pane.",
   "chat.output.empty": "(no recent output)",
+  "chat.terminal.fitting": "Fitting terminal…",
   "chat.switcher.aria": "Switch pane",
   "chat.switcher.title": "Switch pane",
   "chat.switcher.launch.here": "here",

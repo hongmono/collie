@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { ArrowLeft, Download, ExternalLink, FileText, MessageSquare } from "lucide-react";
 import { useLoaderData, useNavigate, useSearchParams } from "react-router";
 
 import { RouteHeader } from "@/components/app-header";
+import { MarkdownText } from "@/components/markdown-text";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ArtifactsData } from "@/lib/loaders";
@@ -42,9 +44,33 @@ function Preview({ artifact, scope }: { artifact: ArtifactRecord; scope?: Return
   if (artifact.mime.startsWith("text/html")) {
     return <iframe src={url} title={artifact.title} sandbox="allow-scripts" scrolling="no" tabIndex={-1} className="pointer-events-none h-36 w-full overflow-hidden rounded-md border bg-white" />;
   }
+  if (artifact.mime.startsWith("text/markdown")) {
+    return <MarkdownPreview url={url} />;
+  }
   return (
     <div className="grid h-36 place-items-center rounded-md bg-muted text-muted-foreground">
       <FileText className="size-7" />
+    </div>
+  );
+}
+
+function MarkdownPreview({ url }: { url: string }) {
+  const [source, setSource] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(url, { signal: controller.signal })
+      .then((response) => response.ok ? response.text() : Promise.reject(new Error("artifact preview failed")))
+      .then(setSource)
+      .catch(() => {
+        if (!controller.signal.aborted) setSource("");
+      });
+    return () => controller.abort();
+  }, [url]);
+  if (source === null) return <div className="h-36 animate-pulse rounded-md bg-muted" />;
+  if (source === "") return <div className="grid h-36 place-items-center rounded-md bg-muted text-muted-foreground"><FileText className="size-7" /></div>;
+  return (
+    <div className="pointer-events-none h-36 overflow-hidden rounded-md border bg-background p-3">
+      <MarkdownText text={source} className="text-xs" />
     </div>
   );
 }

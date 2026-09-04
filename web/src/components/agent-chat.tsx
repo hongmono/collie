@@ -352,6 +352,9 @@ export function AgentChat({
   const listRef = useRef<ChatMessageListHandle>(null);
   const composerRef = useRef<ComposerHandle>(null);
   const lastFitRef = useRef<{ paneId: string; cols: number; rows: number } | null>(null);
+  const firstFitPaneRef = useRef<string | null>(null);
+  const fitAttemptRef = useRef<object | null>(null);
+  const [fittingPane, setFittingPane] = useState<string | null>(null);
 
   const gone = !agent;
 
@@ -383,10 +386,29 @@ export function AgentChat({
       }
       const attempt = { paneId, ...grid };
       lastFitRef.current = attempt;
-      void resizeTerminal(paneId, grid, scope).catch(() => {
-        if (lastFitRef.current === attempt) lastFitRef.current = null;
-        console.warn("[terminal] resize failed");
-      });
+      const firstFit = firstFitPaneRef.current !== paneId;
+      const fitAttempt = {};
+      if (firstFit) {
+        firstFitPaneRef.current = paneId;
+        fitAttemptRef.current = fitAttempt;
+        setFittingPane(paneId);
+      }
+      void resizeTerminal(paneId, grid, scope)
+        .then(() => {
+          // The acknowledgement means the multiplexer applied the grid. Pull once after it, so the
+          // old-width screen stays covered until a read at the new geometry lands.
+          return firstFit ? revalidator.revalidate() : Promise.resolve();
+        })
+        .catch(() => {
+          if (lastFitRef.current === attempt) lastFitRef.current = null;
+          console.warn("[terminal] resize failed");
+        })
+        .finally(() => {
+          if (fitAttemptRef.current === fitAttempt) {
+            fitAttemptRef.current = null;
+            setFittingPane(null);
+          }
+        });
     };
     const scheduleMeasure = () => {
       cancelFrames();
@@ -427,6 +449,7 @@ export function AgentChat({
     readOnly,
     resizeCapability.capable,
     resizeCapability.known,
+    revalidator,
     scope,
   ]);
 
@@ -1616,7 +1639,7 @@ export function AgentChat({
             role="presentation"
             className={cn(
               mirrorGap,
-              "min-h-0 min-w-0 flex-1 border-t border-rule",
+              "relative min-h-0 min-w-0 flex-1 border-t border-rule",
               mirrorFace.className,
             )}
             style={mirrorFace.style}
@@ -1722,6 +1745,18 @@ export function AgentChat({
                 </div>
               )}
             </ChatMessageList>
+            {fittingPane === paneId && (
+              <div
+                role="status"
+                aria-label={t("chat.terminal.fitting")}
+                className="absolute inset-0 z-10 grid place-items-center bg-background/95 text-muted-foreground"
+              >
+                <span className="flex items-center gap-2 text-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                  {t("chat.terminal.fitting")}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Bottom region, in the order it paints: the agent's own statusline (the mirror's last row),

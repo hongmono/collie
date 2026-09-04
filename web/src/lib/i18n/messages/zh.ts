@@ -266,6 +266,7 @@ export const zh: Dictionary = {
   "chat.scrollback.noSessionReported":
     "{agent} 尚未向 Herdr 上报会话。请安装或更新对应的 Herdr 集成，并在当前窗格重启该 Agent。",
   "chat.output.empty": "（暂无近期输出）",
+  "chat.terminal.fitting": "正在调整终端…",
   "chat.switcher.aria": "切换窗格",
   "chat.switcher.title": "切换窗格",
   "chat.switcher.launch.here": "当前位置",

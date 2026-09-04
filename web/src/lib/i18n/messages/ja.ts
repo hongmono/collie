@@ -278,6 +278,7 @@ export const ja: Dictionary = {
   "chat.scrollback.noSessionReported":
     "{agent} のセッションが Herdr に報告されていません。Herdr 連携をインストールまたは更新し、このペインでエージェントを再起動してください。",
   "chat.output.empty": "(直近の出力なし)",
+  "chat.terminal.fitting": "ターミナルを調整中…",
   "chat.switcher.aria": "ペインを切り替え",
   "chat.switcher.title": "ペインを切り替え",
   "chat.switcher.launch.here": "ここ",

@@ -5,6 +5,7 @@ import { artifactForWire, artifactMime, type ArtifactRecord } from "./artifacts.
 describe("artifacts", () => {
   test("classifies previews and safe unknown downloads", () => {
     expect(artifactMime("report.HTML")).toBe("text/html; charset=utf-8");
+    expect(artifactMime("report.MD")).toBe("text/markdown; charset=utf-8");
     expect(artifactMime("data.csv")).toBe("text/csv; charset=utf-8");
     expect(artifactMime("archive.bin")).toBe("application/octet-stream");
   });
