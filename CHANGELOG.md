@@ -25,17 +25,19 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-2] - 2026-09-04
+
 ### Added
 
-- Agents can autonomously publish previews, reports, images, data, and downloads to the new Collie-hosted Artifacts screen.
+- Agents can autonomously publish previews, reports, images, data, and downloads to the new Collie-hosted Artifacts screen. ([5f3e82b](https://github.com/hongmono/collie/commit/5f3e82b))
 
 ### Changed
 
-- The dashboard omits the Ready · unseen and Recent agent sections.
-- The Artifacts screen follows Collie's active language.
-- Artifacts record their actual Herdr workspace ID and the gallery supports space filtering, date groups, compact responsive cards, and non-scrolling previews.
-- Pane conversations link directly to the Artifact gallery filtered to their owning Herdr space.
-- Pane headers keep the overflow menu as the rightmost action.
+- The dashboard omits the Ready · unseen and Recent agent sections. ([f63fa52](https://github.com/hongmono/collie/commit/f63fa52))
+- The Artifacts screen follows Collie's active language. ([3545cdb](https://github.com/hongmono/collie/commit/3545cdb))
+- Artifacts record their actual Herdr workspace ID and the gallery supports space filtering, date groups, compact responsive cards, and non-scrolling previews. ([527f2b9](https://github.com/hongmono/collie/commit/527f2b9))
+- Pane conversations link directly to the Artifact gallery filtered to their owning Herdr space. ([a8d14d8](https://github.com/hongmono/collie/commit/a8d14d8))
+- Pane headers keep the overflow menu as the rightmost action. ([e07b1b](https://github.com/hongmono/collie/commit/e07b1b8))
 
 ## [1.5.0-1] - 2026-09-04
 
