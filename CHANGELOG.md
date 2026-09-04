@@ -25,9 +25,11 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-5] - 2026-09-04
+
 ### Fixed
 
-- Composer attachment parsing uses the repository's named return-type contract.
+- Composer attachment parsing uses the repository's named return-type contract. ([b66e372](https://github.com/hongmono/collie/commit/b66e372))
 
 ## [1.5.0-4] - 2026-09-04
 
