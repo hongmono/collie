@@ -25,9 +25,11 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-8] - 2026-09-04
+
 ### Fixed
 
-- Pane back navigation opens its parent space instead of replaying browser history.
+- Pane back navigation opens its parent space instead of replaying browser history. ([c9127a5](https://github.com/hongmono/collie/commit/c9127a5))
 
 ## [1.5.0-7] - 2026-09-04
 
