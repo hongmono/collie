@@ -19,6 +19,8 @@ interface AgentListProps {
    * pack, and this list is one herd across all of them — an id alone cannot say which row was tapped.
    */
   onOpen: (pane: AgentView) => void;
+  /** Sections this surface wants to show. Omit for the complete triage list. */
+  sections?: readonly TriageKey[];
   /** Which way Recent runs, and how to flip it. Omit to render Recent newest-first with no toggle. */
   recentDir?: RecentDir;
   onRecentDirChange?: (dir: RecentDir) => void;
@@ -57,6 +59,7 @@ export function AgentList({
   agents,
   bridge,
   onOpen,
+  sections: visibleSections,
   recentDir = "newest",
   onRecentDirChange,
   recentOpen = true,
@@ -109,7 +112,9 @@ export function AgentList({
   }
 
   const all = triage(agents, recentDir);
-  const sections = all.filter((s) => s.agents.length > 0);
+  const sections = all.filter(
+    (s) => s.agents.length > 0 && (visibleSections === undefined || visibleSections.includes(s.key)),
+  );
   if (sections.length === 0) return null;
   // "What needs me right now?" deserves an answer even when the answer is "nothing". Without this
   // the section simply doesn't render, and an absence reads the same as a stale load.

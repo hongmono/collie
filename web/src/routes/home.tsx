@@ -22,9 +22,8 @@ import { panePath, spacePath } from "@/lib/nav";
 import type { AgentView } from "@/lib/types";
 import { useRootData } from "@/lib/route-data";
 
-// Dashboard home screen. Everything you might ACT on comes first — Needs you → Ready · unseen →
-// Working → Recent (see lib/triage.ts) — and the Spaces navigator sits last, under the thing it
-// navigates to. Recent and Spaces fold; fold both and the page is the triaged herd and nothing else.
+// Dashboard home screen. The two live sections you might ACT on come first — Needs you → Working
+// (see lib/triage.ts) — and the Spaces navigator sits last, under the thing it navigates to.
 // Launchers sit directly above Spaces: they are one-tap act-on-able actions like the herd above
 // them, but they CREATE rather than triage, so they sit under the triaged herd and above the
 // navigator their new Space will appear in. Tapping an agent opens its pane; tapping a space
@@ -45,7 +44,7 @@ export function HomeRoute() {
         .map((w) => ({ workspaceId: w.workspaceId, repoRoot: w.repoRoot!, label: w.label }))
     : [];
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
-  const { prefs, setSpacesOpen, setLaunchOpen, setRecentOpen, setRecentDir } = useDashPrefs();
+  const { prefs, setSpacesOpen, setLaunchOpen } = useDashPrefs();
   // No stored choice yet? The space count decides — a two-space install shouldn't be handed a
   // mystery collapsed header, and a forty-space one shouldn't be handed a wall.
   const spacesOpen = openForCount(prefs.spacesOpen, data.workspaces.length);
@@ -120,10 +119,7 @@ export function HomeRoute() {
             agents={data.agents}
             bridge={data.bridge}
             onOpen={open}
-            recentDir={prefs.recentDir}
-            onRecentDirChange={setRecentDir}
-            recentOpen={prefs.recentOpen}
-            onRecentOpenChange={setRecentOpen}
+            sections={["needs", "working"]}
             error={data.error}
             lastSeenAt={data.lastSeenAt}
           />

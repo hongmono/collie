@@ -31,6 +31,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ### Changed
 
+- The dashboard omits the Ready · unseen and Recent agent sections.
 - The Artifacts screen follows Collie's active language.
 - Artifacts record their actual Herdr workspace ID and the gallery supports space filtering, date groups, compact responsive cards, and non-scrolling previews.
 - Pane conversations link directly to the Artifact gallery filtered to their owning Herdr space.

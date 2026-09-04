@@ -99,6 +99,14 @@ const packed = () =>
   });
 
 describe("the dashboard on ONE machine is untouched", () => {
+  it("omits the Ready · unseen and Recent sections", async () => {
+    renderHome(solo());
+    await settled();
+    const headings = screen.getAllByRole("heading").map((h) => h.textContent ?? "");
+    expect(headings.some((h) => /ready · unseen/i.test(h))).toBe(false);
+    expect(headings.some((h) => /^recent$/i.test(h))).toBe(false);
+  });
+
   it("renders no host switcher and no host chip anywhere", async () => {
     renderHome(solo());
     await settled();
