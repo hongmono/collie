@@ -1016,7 +1016,7 @@ describe("AgentChat \u2014 the pane menu in the header", () => {
     const after = Array.from(headerRow(container).querySelectorAll("button")).filter(
       (b) => title.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(after.map((b) => b.getAttribute("aria-label"))).toEqual(["Pane actions", "Open artifacts"]);
+    expect(after.map((b) => b.getAttribute("aria-label"))).toEqual(["Open artifacts", "Pane actions"]);
   });
 
   // The glyph is a \u22ee and names nothing on its own, so the accessible name is the whole of what a

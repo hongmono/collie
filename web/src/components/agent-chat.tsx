@@ -1119,7 +1119,8 @@ export function AgentChat({
           // can never show more than the visible viewport. Offered only when the pane reported an
           // agent session id, so the row never leads to an empty screen. Both gates are now `undefined`
           // callbacks rather than unrendered buttons; the sheet hides a row it was given no callback for.
-          rightLead={
+          rightLead={agent ? <ArtifactsButton scope={scope} spaceId={agent.workspaceId} paneId={paneId} /> : undefined}
+          rightTrail={
             agent ? (
               <button
                 type="button"
@@ -1135,7 +1136,6 @@ export function AgentChat({
               </button>
             ) : undefined
           }
-          rightTrail={agent ? <ArtifactsButton scope={scope} spaceId={agent.workspaceId} paneId={paneId} /> : undefined}
         >
           {/* Title block: the agent's brand logo and the space › tab share line 1 (the agent name
               would just repeat the icon, so it's dropped), and the working directory has line 2 to
