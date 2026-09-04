@@ -25,19 +25,21 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-4] - 2026-09-04
+
 ### Changed
 
-- Image uploads appear as removable Codex-style attachments instead of raw paths in the composer.
+- Image uploads appear as removable Codex-style attachments instead of raw paths in the composer. ([1b355bf](https://github.com/hongmono/collie/commit/1b355bf))
 
 ### Added
 
-- Agent Stop hooks automatically publish mentioned files, Mermaid diagrams, tables, and long reports as session-linked artifacts.
+- Agent Stop hooks automatically publish mentioned files, Mermaid diagrams, tables, and long reports as session-linked artifacts. ([27c6723](https://github.com/hongmono/collie/commit/27c6723))
 
 ### Fixed
 
-- Codex replies with many blank lines no longer remain typed but unsubmitted.
-- Codex replies with Collie-uploaded images now verify their rendered image tokens and submit normally.
-- Pack member spaces now show and open their own tabs and panes when drilled into.
+- Codex replies with many blank lines no longer remain typed but unsubmitted. ([27c6723](https://github.com/hongmono/collie/commit/27c6723))
+- Codex replies with Collie-uploaded images now verify their rendered image tokens and submit normally. ([27c6723](https://github.com/hongmono/collie/commit/27c6723))
+- Pack member spaces now show and open their own tabs and panes when drilled into. ([27c6723](https://github.com/hongmono/collie/commit/27c6723))
 
 ## [1.5.0-3] - 2026-09-04
 
