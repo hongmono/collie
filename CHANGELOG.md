@@ -25,9 +25,11 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+## [1.5.0-3] - 2026-09-04
+
 ### Changed
 
-- The dashboard lists spaces from every pack machine and labels each with its host.
+- The dashboard lists spaces from every pack machine and labels each with its host. ([416e341](https://github.com/hongmono/collie/commit/416e341))
 
 ## [1.5.0-2] - 2026-09-04
 
