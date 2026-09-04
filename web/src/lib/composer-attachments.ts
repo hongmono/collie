@@ -2,10 +2,15 @@ export interface ComposerAttachment {
   path: string;
 }
 
+export interface ComposerDraftParts {
+  text: string;
+  attachments: ComposerAttachment[];
+}
+
 // A path the operator typed themselves is message text, not hidden UI state.
 const COLLIE_UPLOAD = /(?:^|\s)(\/[^\s]*\/collie\/uploads\/[^\s]+\.(?:png|jpe?g|gif|webp))(?:$|(?=\s))/gi;
 
-export function splitComposerDraft(stored: string): { text: string; attachments: ComposerAttachment[] } {
+export function splitComposerDraft(stored: string): ComposerDraftParts {
   const attachments: ComposerAttachment[] = [];
   const withoutAttachments = stored
     .replace(COLLIE_UPLOAD, (_match, path: string) => {

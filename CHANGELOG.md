@@ -25,6 +25,10 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ## [Unreleased]
 
+### Fixed
+
+- Composer attachment parsing uses the repository's named return-type contract.
+
 ## [1.5.0-4] - 2026-09-04
 
 ### Changed
